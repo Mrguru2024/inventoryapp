@@ -1,5 +1,0 @@
-{
-  "scripts": {
-    "db:setup": "prisma generate && prisma db push && ts-node lib/seed.ts"
-  }
-} 

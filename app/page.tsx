@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
+import { Logo } from './components/Logo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,7 +13,7 @@ export default function LoginPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'CUSTOMER' as 'ADMIN' | 'TECHNICIAN' | 'CUSTOMER',
+    role: 'TECHNICIAN' as 'ADMIN' | 'TECHNICIAN',
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,14 +23,14 @@ export default function LoginPage() {
     setIsLoading(true);
     setError('');
 
-    if (isRegistering) {
-      if (formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match');
-        setIsLoading(false);
-        return;
-      }
+    try {
+      if (isRegistering) {
+        // Registration logic
+        if (formData.password !== formData.confirmPassword) {
+          setError('Passwords do not match');
+          return;
+        }
 
-      try {
         const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -39,26 +38,28 @@ export default function LoginPage() {
             name: formData.name,
             email: formData.email,
             password: formData.password,
+            role: formData.role,
           }),
         });
 
         if (res.ok) {
-          // Auto login after registration
-          await signIn('credentials', {
+          const result = await signIn('credentials', {
             redirect: false,
             email: formData.email,
             password: formData.password,
           });
-          router.push('/technician/dashboard');
+
+          if (result?.error) {
+            setError(result.error);
+          } else {
+            router.push(`/${formData.role.toLowerCase()}/dashboard`);
+          }
         } else {
           const data = await res.json();
           throw new Error(data.error || 'Registration failed');
         }
-      } catch (error: any) {
-        setError(error.message);
-      }
-    } else {
-      try {
+      } else {
+        // Login logic
         const result = await signIn('credentials', {
           redirect: false,
           email: formData.email,
@@ -68,43 +69,29 @@ export default function LoginPage() {
         if (result?.error) {
           setError(result.error);
         } else {
-          // Get user data including role
           const response = await fetch('/api/auth/me');
           const userData = await response.json();
           
-          // Redirect based on role
-          switch (userData.role) {
-            case 'ADMIN':
-              router.push('/admin/dashboard');
-              break;
-            case 'TECHNICIAN':
-              router.push('/technician/dashboard');
-              break;
-            case 'CUSTOMER':
-              router.push('/customer/dashboard');
-              break;
-            default:
-              setError('Invalid user role');
+          if (userData?.role) {
+            router.push(`/${userData.role.toLowerCase()}/dashboard`);
+          } else {
+            setError('Failed to get user role');
           }
         }
-      } catch (error) {
-        setError('An error occurred during sign in');
       }
+    } catch (error: any) {
+      setError(error.message || 'An error occurred');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/logo.svg"
-          alt="Key Inventory System"
-          width={180}
-          height={38}
-          priority
-        />
+    <div className="min-h-screen grid place-items-center p-8">
+      <main className="w-full max-w-md space-y-8">
+        <div className="flex justify-center">
+          <Logo />
+        </div>
 
         <form className="w-full max-w-sm space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
@@ -128,8 +115,9 @@ export default function LoginPage() {
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value as typeof formData.role })}
                 >
-                  <option value="CUSTOMER">Customer</option>
+                  <option value="ADMIN">Admin</option>
                   <option value="TECHNICIAN">Technician</option>
+                  <option value="CUSTOMER">Customer</option>
                 </select>
               </>
             )}
@@ -191,7 +179,7 @@ export default function LoginPage() {
                 email: '',
                 password: '',
                 confirmPassword: '',
-                role: 'CUSTOMER',
+                role: 'TECHNICIAN',
               });
             }}
             className="w-full text-sm text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white"

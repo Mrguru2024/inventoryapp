@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth';
+import NextAuth, { AuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import GithubProvider from 'next-auth/providers/github';
@@ -7,7 +7,7 @@ import { compare } from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-const handler = NextAuth({
+export const authOptions: AuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_ID!,
@@ -33,12 +33,14 @@ const handler = NextAuth({
         });
 
         if (!user) {
+          console.log('No user found:', credentials.email);
           throw new Error('No user found');
         }
 
         const isPasswordValid = await compare(credentials.password, user.password);
 
         if (!isPasswordValid) {
+          console.log('Invalid password for user:', credentials.email);
           throw new Error('Invalid password');
         }
 
@@ -58,6 +60,7 @@ const handler = NextAuth({
     signIn: '/',
     error: '/auth/error',
   },
+  debug: process.env.NODE_ENV === 'development',
   callbacks: {
     async jwt({ token, user, account }) {
       if (user) {
@@ -67,7 +70,7 @@ const handler = NextAuth({
             create: {
               email: user.email!,
               name: user.name!,
-              role: 'CUSTOMER',
+              role: 'TECHNICIAN',
               emailVerified: new Date(),
             },
             update: {}
@@ -77,31 +80,25 @@ const handler = NextAuth({
           const dbUser = await prisma.user.findUnique({
             where: { email: user.email! }
           });
-          token.role = dbUser?.role || 'CUSTOMER';
+          token.role = dbUser?.role || 'TECHNICIAN';
         }
+        token.id = user.id;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.role = token.role;
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
         const user = await prisma.user.findUnique({
           where: { email: session.user.email! }
         });
         session.user.emailVerified = user?.emailVerified;
       }
       return session;
-    },
-    async signIn({ user, account }) {
-      if (account?.provider === 'credentials') {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: user.email! }
-        });
-        return !!dbUser?.emailVerified;
-      }
-      return true;
     }
   }
-});
+};
 
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST }; 

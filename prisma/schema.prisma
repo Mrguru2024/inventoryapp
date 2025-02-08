@@ -15,6 +15,7 @@ model User {
   role      Role      @default(TECHNICIAN)
   emailVerified DateTime?
   requests  Request[]
+  keyCheckouts KeyCheckout[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
@@ -43,6 +44,83 @@ model Request {
   updatedAt        DateTime  @updatedAt
 }
 
+model Key {
+  id                String   @id @default(cuid())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  partNumber        String   @unique
+  year              String
+  make             String
+  model            String
+  fccId            String?
+  icNumber         String?
+  continentalNumber String?
+  frequency        String
+  battery          String
+  emergencyKey     String?
+  testKey          String?
+  manufacturer     String
+  buttons          Json
+  notes            String?
+  status           KeyStatus @default(AVAILABLE)
+  checkouts        KeyCheckout[]
+
+  @@index([make, model, year])
+  @@index([partNumber])
+}
+
+model KeyCheckout {
+  id        String   @id @default(cuid())
+  keyId     String
+  key       Key      @relation(fields: [keyId], references: [id])
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  checkedOut DateTime @default(now())
+  checkedIn  DateTime?
+  notes      String?
+
+  @@index([keyId])
+  @@index([userId])
+}
+
+model TransponderKey {
+  id              String   @id @default(cuid())
+  make            String
+  model           String
+  yearStart       Int
+  yearEnd         Int?
+  transponderType String
+  chipType        String[]
+  compatibleParts String[]
+  notes           String?
+  vatsEnabled     Boolean  @default(false)
+  vatsSystem      String?  // VATS, PassKey-1, or PassKey-2
+  dualSystem      Boolean  @default(false)
+  alternateChipType String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([make, model])
+  @@index([transponderType])
+}
+
+model TransponderInventory {
+  id              String   @id @default(cuid())
+  transponderType String
+  chipType        String[]
+  quantity        Int      @default(0)
+  minimumStock    Int      @default(5)
+  location        String
+  supplier        String
+  lastOrdered     DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([transponderType])
+  @@index([chipType])
+}
+
 enum Role {
   ADMIN
   TECHNICIAN
@@ -52,4 +130,11 @@ enum Status {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum KeyStatus {
+  AVAILABLE
+  CHECKED_OUT
+  MAINTENANCE
+  LOST
 }

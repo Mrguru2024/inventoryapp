@@ -2,12 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-interface LogoProps {
-  width?: number;
-  height?: number;
-}
-
-export function Logo({ width = 200, height = 80 }: LogoProps) {
+export function Logo() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -15,11 +10,11 @@ export function Logo({ width = 200, height = 80 }: LogoProps) {
   }, []);
 
   if (!mounted) {
-    return <div style={{ width, height }} />;
+    return <div className="w-[200px] h-[80px]" />;
   }
 
   return (
-    <div style={{ width, height }} className="relative">
+    <div className="w-[200px] h-[80px] relative">
       <img
         src="/logo.png"
         alt="Key Inventory System"

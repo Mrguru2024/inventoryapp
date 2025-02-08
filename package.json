@@ -11,29 +11,43 @@
     "db:reset": "prisma db push --force-reset && ts-node lib/seed.ts"
   },
   "dependencies": {
-    "@prisma/client": "5.9.1",
+    "@headlessui/react": "^1.7.17",
+    "@heroicons/react": "^2.1.1",
+    "@prisma/client": "^5.9.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/next-auth": "^3.15.0",
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
     "axios": "^1.7.9",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
+    "framer-motion": "^12.4.1",
+    "lucide-react": "^0.475.0",
     "next": "^14.2.23",
     "next-auth": "^4.24.5",
     "next-themes": "^0.2.1",
     "nodemailer": "^6.9.9",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-zxing": "^2.0.2",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@types/bcrypt": "^5.0.2",
     "@types/node": "^20.17.17",
     "@types/nodemailer": "^6.4.14",
-    "@types/react": "^18.3.18",
-    "@types/react-dom": "^18.3.5",
-    "@types/next-auth": "^3.15.0",
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.0",
     "eslint": "^8.56.0",
-    "eslint-config-next": "14.0.4",
+    "eslint-config-next": "14.1.3",
     "postcss": "^8",
     "prisma": "5.9.1",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "prisma": {
+    "seed": "node -r ts-node/register prisma/seed.ts"
   }
 }

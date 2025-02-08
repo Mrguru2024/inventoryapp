@@ -1,6 +1,4 @@
-import { TransponderKeyData } from '@/app/services/transponderService';
-
-export const chevroletTransponderData: TransponderKeyData[] = [
+const chevroletTransponderData = [
   {
     make: "CHEVROLET",
     model: "AGILE",
@@ -75,4 +73,6 @@ export const chevroletTransponderData: TransponderKeyData[] = [
     vatsSystem: "VATS",
     notes: "Uses resistor values 2-15"
   }
-]; 
+];
+
+module.exports = { chevroletTransponderData }; 

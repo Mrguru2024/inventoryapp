@@ -1,6 +1,4 @@
-import { TransponderKeyData } from '@/app/services/transponderService';
-
-export const fiatTransponderData: TransponderKeyData[] = [
+const fiatTransponderData = [
   {
     make: "FIAT",
     model: "500",
@@ -78,4 +76,6 @@ export const fiatTransponderData: TransponderKeyData[] = [
     compatibleParts: ["6000627330", "6000628569", "6000631468"],
     notes: "Commercial vehicle system"
   }
-]; 
+];
+
+module.exports = { fiatTransponderData }; 

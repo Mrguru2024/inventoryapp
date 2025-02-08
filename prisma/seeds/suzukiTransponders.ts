@@ -1,8 +1,9 @@
 import { TransponderKeyData } from '@/app/services/transponderService';
 
-export const suzukiTransponderData: TransponderKeyData[] = [
+const suzukiTransponderData: TransponderKeyData[] = [
   // Modern AES Systems (2015+)
   {
+    id: "SUZUKI-BALENO-2015",
     make: "SUZUKI",
     model: "BALENO",
     yearStart: 2015,
@@ -14,6 +15,7 @@ export const suzukiTransponderData: TransponderKeyData[] = [
   
   // Legacy 4C Systems (1996-2002)
   {
+    id: "SUZUKI-ALTO-1996-2002",
     make: "SUZUKI",
     model: "ALTO",
     yearStart: 1996,
@@ -25,6 +27,7 @@ export const suzukiTransponderData: TransponderKeyData[] = [
   
   // Hitag2 Systems (2002-2014)
   {
+    id: "SUZUKI-KIZASHI-2010-2014",
     make: "SUZUKI",
     model: "KIZASHI",
     yearStart: 2010,
@@ -37,6 +40,7 @@ export const suzukiTransponderData: TransponderKeyData[] = [
   
   // Dual System Vehicles
   {
+    id: "SUZUKI-JIMNY-2002-2006",
     make: "SUZUKI",
     model: "JIMNY",
     yearStart: 2002,
@@ -49,6 +53,7 @@ export const suzukiTransponderData: TransponderKeyData[] = [
   
   // Latest Generation (2015+)
   {
+    id: "SUZUKI-VITARA-2015",
     make: "SUZUKI",
     model: "VITARA",
     yearStart: 2015,
@@ -60,6 +65,7 @@ export const suzukiTransponderData: TransponderKeyData[] = [
   
   // Motorcycles (🏍)
   {
+    id: "SUZUKI-GSX-R-1000-2006",
     make: "SUZUKI",
     model: "GSX R-1000",
     yearStart: 2006,
@@ -68,6 +74,7 @@ export const suzukiTransponderData: TransponderKeyData[] = [
     notes: "Motorcycle system"
   },
   {
+    id: "SUZUKI-HAYABUSA-2007",
     make: "SUZUKI",
     model: "HAYABUSA",
     yearStart: 2007,
@@ -76,11 +83,24 @@ export const suzukiTransponderData: TransponderKeyData[] = [
     notes: "Motorcycle system"
   },
   {
+    id: "SUZUKI-BURGMAN-2012",
     make: "SUZUKI",
     model: "BURGMAN",
     yearStart: 2012,
     transponderType: "Texas Crypto 4D",
     chipType: ["4D71", "JMA TP28"],
     notes: "Motorcycle system"
+  },
+  {
+    id: "SUZUKI-SWIFT-2005",
+    make: "SUZUKI",
+    model: "SWIFT",
+    yearStart: 2005,
+    yearEnd: 2010,
+    transponderType: "Philips Crypto 2",
+    chipType: ["ID46", "PCF7936", "TP12"],
+    compatibleParts: ["37145-63J00", "37145-63J10"]
   }
-]; 
+];
+
+module.exports = { suzukiTransponderData }; 

@@ -7,6 +7,7 @@ import ClientInit from './components/ClientInit';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/ErrorBoundary';
 import SessionWrapper from './components/SessionWrapper';
+import Providers from './providers';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,15 +24,17 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
-        <SessionWrapper>
-          <ErrorBoundary>
-            <ClientInit>
-              <Suspense fallback={<LoadingSpinner />}>
-                <ClientWrapper>{children}</ClientWrapper>
-              </Suspense>
-            </ClientInit>
-          </ErrorBoundary>
-        </SessionWrapper>
+        <Providers>
+          <SessionWrapper>
+            <ErrorBoundary>
+              <ClientInit>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <ClientWrapper>{children}</ClientWrapper>
+                </Suspense>
+              </ClientInit>
+            </ErrorBoundary>
+          </SessionWrapper>
+        </Providers>
       </body>
     </html>
   );

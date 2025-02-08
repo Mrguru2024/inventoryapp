@@ -1,6 +1,4 @@
-import { TransponderKeyData } from '@/app/services/transponderService';
-
-export const chryslerTransponderData: TransponderKeyData[] = [
+const chryslerTransponderData = [
   // Legacy 4D Systems (1998-2006)
   {
     make: "CHRYSLER",
@@ -34,5 +32,18 @@ export const chryslerTransponderData: TransponderKeyData[] = [
     chipType: ["ID 4A", "PCF7953M", "PCF7953Mx"],
     compatibleParts: ["M3M-40821302", "68155687AB", "68394191", "68394191AA"],
     notes: "Latest generation system"
+  },
+
+  {
+    id: "CHRYSLER-300-2005",
+    make: "CHRYSLER",
+    model: "300",
+    yearStart: 2005,
+    yearEnd: 2010,
+    transponderType: "Texas Crypto",
+    chipType: ["ID33", "PCF7935", "TPX1"],
+    compatibleParts: ["04589677AC", "04589677AD"]
   }
-]; 
+];
+
+module.exports = { chryslerTransponderData }; 

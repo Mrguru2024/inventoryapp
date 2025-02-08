@@ -90,13 +90,10 @@ model TransponderKey {
   yearStart       Int
   yearEnd         Int?
   transponderType String
-  chipType        String[]
-  compatibleParts String[]
+  chipType        String   // JSON string of array
+  compatibleParts String?  // JSON string of array
   notes           String?
-  vatsEnabled     Boolean  @default(false)
-  vatsSystem      String?  // VATS, PassKey-1, or PassKey-2
   dualSystem      Boolean  @default(false)
-  alternateChipType String[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -107,18 +104,21 @@ model TransponderKey {
 model TransponderInventory {
   id              String   @id @default(cuid())
   transponderType String
-  chipType        String[]
+  chipType        String   @default("[]")
   quantity        Int      @default(0)
-  minimumStock    Int      @default(5)
-  location        String
-  supplier        String
-  lastOrdered     DateTime?
-  notes           String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
 
-  @@index([transponderType])
-  @@index([chipType])
+model SearchAnalytics {
+  id           String   @id @default(cuid())
+  query        String
+  category     String
+  resultsCount Int
+  filters      String?  // JSON string
+  timestamp    DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 enum Role {

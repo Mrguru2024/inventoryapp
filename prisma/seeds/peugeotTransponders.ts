@@ -1,6 +1,6 @@
 import { TransponderKeyData } from '@/app/services/transponderService';
 
-export const peugeotTransponderData: TransponderKeyData[] = [
+const peugeotTransponderData: TransponderKeyData[] = [
   // Modern AES Systems (2017+)
   {
     make: "PEUGEOT",
@@ -74,5 +74,17 @@ export const peugeotTransponderData: TransponderKeyData[] = [
     transponderType: "Temic 11",
     chipType: ["ID11", "JMA TP05", "SILCA T5"],
     notes: "Motorcycle/Scooter system"
+  },
+  {
+    id: "PEUGEOT-206-2000",
+    make: "PEUGEOT",
+    model: "206",
+    yearStart: 2000,
+    yearEnd: 2010,
+    transponderType: "Philips Crypto 2",
+    chipType: ["ID46", "PCF7936", "TP12"],
+    compatibleParts: ["VA2", "HU83"]
   }
-]; 
+];
+
+module.exports = { peugeotTransponderData }; 

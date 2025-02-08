@@ -1,6 +1,6 @@
 import { TransponderKeyData } from '@/app/services/transponderService';
 
-export const lexusTransponderData: TransponderKeyData[] = [
+const lexusTransponderData: TransponderKeyData[] = [
   // Modern AES Systems (2013+)
   {
     make: "LEXUS",
@@ -80,4 +80,6 @@ export const lexusTransponderData: TransponderKeyData[] = [
     chipType: ["DST AES 128-bit"],
     compatibleParts: ["HYQ14FBA", "89904-78460", "89904-78450", "89904-53512"]
   }
-]; 
+];
+
+module.exports = { lexusTransponderData }; 

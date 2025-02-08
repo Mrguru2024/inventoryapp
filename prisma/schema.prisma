@@ -92,6 +92,7 @@ model TransponderKey {
   transponderType String
   chipType        String   // JSON string of array
   compatibleParts String?  // JSON string of array
+  frequency       String?  // Added field for frequency
   notes           String?
   dualSystem      Boolean  @default(false)
   createdAt       DateTime @default(now())
@@ -99,6 +100,7 @@ model TransponderKey {
 
   @@index([make, model])
   @@index([transponderType])
+  @@index([chipType])  // Added index for chip type searches
 }
 
 model TransponderInventory {

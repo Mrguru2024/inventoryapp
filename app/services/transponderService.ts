@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { withRetry } from '@/app/utils/retry';
 import logger from '@/app/utils/logger';
+import axios from 'axios';
 
 export interface TransponderKeyData {
   id?: string;
@@ -15,6 +16,21 @@ export interface TransponderKeyData {
   vatsEnabled?: boolean;
   vatsSystem?: string;
   dualSystem?: boolean;
+}
+
+export interface TransponderData {
+  id: string;
+  make: string;
+  model: string;
+  yearStart: number;
+  yearEnd: number | null;
+  transponderType: string;
+  chipType: string;
+  compatibleParts: string | null;
+  frequency: string | null;
+  remoteFrequency?: string | null;
+  notes: string | null;
+  dualSystem: boolean;
 }
 
 export const transponderService = {
@@ -55,88 +71,42 @@ export const transponderService = {
   }
 };
 
-export async function getTransponders(): Promise<TransponderKeyData[]> {
-  return withRetry(
-    async () => {
-      try {
-        const response = await fetch('/api/transponders');
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            `HTTP error! status: ${response.status}, message: ${errorData.error || 'Unknown error'}, details: ${errorData.details || 'No details available'}`
-          );
-        }
-        
-        const data = await response.json();
-        
-        if (!Array.isArray(data)) {
-          console.error('Invalid response format:', data);
-          throw new Error('Invalid response format from server');
-        }
-        
-        return data.map((t: any) => ({
-          id: t.id || '',
-          make: t.make || '',
-          model: t.model || '',
-          yearStart: t.yearStart || 0,
-          yearEnd: t.yearEnd || undefined,
-          chipType: Array.isArray(t.chipType) ? t.chipType : [],
-          frequency: t.frequency || undefined,
-          transponderType: t.transponderType || '',
-          compatibleParts: Array.isArray(t.compatibleParts) ? t.compatibleParts : [],
-          notes: t.notes || undefined,
-          dualSystem: !!t.dualSystem,
-          alternateChipType: Array.isArray(t.alternateChipType) ? t.alternateChipType : []
-        }));
-      } catch (error) {
-        console.error('Error in getTransponders:', error);
-        throw error;
-      }
-    },
-    { maxAttempts: 3, delay: 2000, backoff: true }
-  );
+export async function getTransponders() {
+  try {
+    const response = await axios.get('/api/transponders');
+    return response.data;
+  } catch (error) {
+    console.error('API error:', error);
+    throw new Error('Failed to fetch transponder data');
+  }
+}
+
+export async function getTransponderByVehicle(make: string, model: string, year: number) {
+  try {
+    const response = await axios.get(`/api/transponders/vehicle?make=${make}&model=${model}&year=${year}`);
+    return response.data;
+  } catch (error) {
+    console.error('API error:', error);
+    throw new Error('Failed to fetch vehicle transponder data');
+  }
 }
 
 export async function getTransponderData(): Promise<TransponderKeyData[]> {
   try {
-    const transponders = await prisma.transponderKey.findMany({
-      orderBy: { make: 'asc' },
-    });
-
-    return transponders.map(transponder => ({
-      ...transponder,
-      chipType: JSON.parse(transponder.chipType),
-      compatibleParts: transponder.compatibleParts 
-        ? JSON.parse(transponder.compatibleParts)
-        : undefined,
-    }));
+    const response = await axios.get('/api/transponders');
+    return response.data;
   } catch (error) {
-    console.error('Database error:', error);
-    throw new Error('Failed to fetch transponder data from database');
+    console.error('API error:', error);
+    throw new Error('Failed to fetch transponder data');
   }
 }
 
-export async function searchTransponders(query: string): Promise<TransponderKeyData[]> {
+export async function searchTransponders(query: string): Promise<TransponderData[]> {
+  if (!query || query.length < 3) return [];
+  
   try {
-    const transponders = await prisma.transponderKey.findMany({
-      where: {
-        OR: [
-          { make: { contains: query, mode: 'insensitive' } },
-          { model: { contains: query, mode: 'insensitive' } },
-          { transponderType: { contains: query, mode: 'insensitive' } },
-          { chipType: { contains: query, mode: 'insensitive' } },
-        ],
-      },
-    });
-
-    return transponders.map(transponder => ({
-      ...transponder,
-      chipType: JSON.parse(transponder.chipType),
-      compatibleParts: transponder.compatibleParts 
-        ? JSON.parse(transponder.compatibleParts)
-        : undefined,
-    }));
+    const response = await axios.get(`/api/transponders/search?q=${encodeURIComponent(query)}`);
+    return response.data;
   } catch (error) {
     console.error('Search error:', error);
     throw new Error('Failed to search transponder data');

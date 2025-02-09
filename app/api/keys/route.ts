@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { keySchema } from '@/lib/validations/key';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { authOptions } from '../auth/auth.config';
 
 export async function POST(req: Request) {
   try {
@@ -15,42 +15,82 @@ export async function POST(req: Request) {
     const body = keySchema.parse(json);
 
     const key = await prisma.key.create({
-      data: body,
+      data: {
+        fccId: body.fccId,
+        icId: body.icId,
+        manufacturer: body.manufacturer,
+        manufacturerPartNumber: body.manufacturerPartNumber,
+        frequency: body.frequency,
+        battery: body.battery,
+        buttons: body.buttons,
+        emergencyKey: body.emergencyKey,
+        testKey: body.testKey,
+        replacesPN: body.replacesPN,
+        aftermarketFor: body.aftermarketFor,
+      },
     });
 
     return NextResponse.json(key);
   } catch (error) {
-    console.error('Error creating key:', error);
-    return new NextResponse('Error creating key', { status: 500 });
+    console.error('Failed to create key:', error);
+    return NextResponse.json(
+      { error: 'Failed to create key' },
+      { status: 500 }
+    );
   }
 }
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
     const { searchParams } = new URL(req.url);
-    const make = searchParams.get('make');
-    const model = searchParams.get('model');
-    const year = searchParams.get('year');
-
-    const where = {
-      ...(make && { make }),
-      ...(model && { model }),
-      ...(year && { year }),
-    };
+    const search = searchParams.get('search') || '';
 
     const keys = await prisma.key.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
+      where: {
+        OR: [
+          {
+            fccId: {
+              contains: search,
+            },
+          },
+          {
+            icId: {
+              contains: search,
+            },
+          },
+          {
+            manufacturer: {
+              contains: search,
+            },
+          },
+          {
+            manufacturerPartNumber: {
+              contains: search,
+            },
+          },
+          {
+            replacesPN: {
+              contains: search,
+            },
+          },
+          {
+            aftermarketFor: {
+              contains: search,
+            },
+          },
+        ],
+      },
+      orderBy: {
+        manufacturer: 'asc',
+      },
     });
 
     return NextResponse.json(keys);
   } catch (error) {
-    console.error('Error fetching keys:', error);
-    return new NextResponse('Error fetching keys', { status: 500 });
+    console.error('Failed to fetch keys:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch keys' },
+      { status: 500 }
+    );
   }
 } 

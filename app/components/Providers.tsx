@@ -1,52 +1,43 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider } from 'next-auth/react';
 import { ThemeProvider } from 'next-themes';
 import LoadingSpinner from './LoadingSpinner';
+import { ReactNode } from 'react';
 
 export default function Providers({
   children
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
+  const [queryClient] = useState(() => new QueryClient());
   const [mounted, setMounted] = useState(false);
 
-  // Handle touch events with passive option
-  useEffect(() => {
-    const options = { passive: true };
-    
-    // Add passive touch event listeners
-    document.addEventListener('touchstart', () => {}, options);
-    document.addEventListener('touchmove', () => {}, options);
-
-    // Cleanup
-    return () => {
-      document.removeEventListener('touchstart', () => {});
-      document.removeEventListener('touchmove', () => {});
-    };
-  }, []);
-
-  // Handle mounting state
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Prevent hydration mismatch
   if (!mounted) {
     return <LoadingSpinner />;
   }
 
   return (
-    <SessionProvider>
-      <ThemeProvider 
-        attribute="class" 
-        defaultTheme="system" 
-        enableSystem
-        disableTransitionOnChange
+    <QueryClientProvider client={queryClient}>
+      <SessionProvider 
+        refetchInterval={0}
+        refetchOnWindowFocus={false}
       >
-        {children}
-      </ThemeProvider>
-    </SessionProvider>
+        <ThemeProvider 
+          attribute="class" 
+          defaultTheme="system" 
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </SessionProvider>
+    </QueryClientProvider>
   );
 } 

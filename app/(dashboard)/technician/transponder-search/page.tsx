@@ -1,37 +1,27 @@
-'use client';
-
-import { useQuery } from '@tanstack/react-query';
-import { getTransponders } from '@/app/services/transponderService';
+import { Suspense } from 'react';
 import TransponderSearch from '@/app/components/TransponderSearch';
-import { ErrorBoundary } from 'react-error-boundary';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
-import ErrorFallback from '@/app/components/ErrorFallback';
+import TransponderImport from '@/app/components/TransponderImport';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/lib/auth';
+import { redirect } from 'next/navigation';
 
-export default function TransponderSearchPage() {
-  return (
-    <ErrorBoundary 
-      FallbackComponent={ErrorFallback}
-      onReset={() => {
-        // Reset the query when the error boundary resets
-        window.location.reload();
-      }}
-    >
-      <TransponderSearchContent />
-    </ErrorBoundary>
-  );
-}
-
-function TransponderSearchContent() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['transponders'],
-    queryFn: getTransponders,
-    retry: 2
-  });
-
-  if (isLoading) return <LoadingSpinner />;
-  if (error) {
-    throw error; // This will be caught by the ErrorBoundary
+export default async function TransponderSearchPage() {
+  const session = await getServerSession(authOptions);
+  
+  if (!session || session.user.role !== 'TECHNICIAN') {
+    redirect('/auth/login');
   }
 
-  return <TransponderSearch data={data} />;
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Transponder Database</h1>
+      <TransponderImport />
+      <Suspense fallback={<LoadingSpinner />}>
+        <div className="w-full">
+          <TransponderSearch />
+        </div>
+      </Suspense>
+    </div>
+  );
 } 

@@ -1,42 +1,38 @@
+import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
-import { NextRequestWithAuth } from 'next-auth/middleware';
-import { roleCheck } from './middleware/roleCheck';
 
-export default async function middleware(request: NextRequestWithAuth) {
-  const { pathname } = request.nextUrl;
+export default withAuth(
+  function middleware(req) {
+    const isAuth = !!req.nextauth.token;
+    const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
 
-  // Public paths
-  if (pathname.startsWith('/auth/') || pathname === '/') {
-    return NextResponse.next();
+    if (isAuthPage) {
+      if (isAuth) {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+      }
+      return null;
+    }
+
+    if (!isAuth) {
+      let from = req.nextUrl.pathname;
+      if (req.nextUrl.search) {
+        from += req.nextUrl.search;
+      }
+
+      return NextResponse.redirect(
+        new URL(`/auth/login?from=${encodeURIComponent(from)}`, req.url)
+      );
+    }
+  },
+  {
+    callbacks: {
+      authorized: ({ token }) => !!token
+    },
   }
-
-  // Role-specific paths
-  if (pathname.startsWith('/admin/')) {
-    return roleCheck(request, ['ADMIN']);
-  }
-
-  if (pathname.startsWith('/technician/')) {
-    return roleCheck(request, ['TECHNICIAN', 'ADMIN']);
-  }
-
-  if (pathname.startsWith('/customer/')) {
-    return roleCheck(request, ['CUSTOMER']);
-  }
-
-  return NextResponse.next();
-}
+);
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
-  ],
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ]
 }; 

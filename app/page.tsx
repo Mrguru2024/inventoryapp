@@ -1,6 +1,6 @@
-import { getServerSession } from 'next-auth/next';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/auth.config';
 import { redirect } from 'next/navigation';
-import { authOptions } from './api/auth/[...nextauth]/route';
 import LoginFormWrapper from './components/LoginFormWrapper';
 
 export default async function LoginPage() {
@@ -20,4 +20,9 @@ export default async function LoginPage() {
       <LoginFormWrapper />
     </div>
   );
+}
+
+export function Home() {
+  // Redirect to dashboard by default
+  redirect('/dashboard');
 } 

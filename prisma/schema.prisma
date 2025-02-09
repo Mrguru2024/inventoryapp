@@ -45,37 +45,34 @@ model Request {
 }
 
 model Key {
-  id                String   @id @default(cuid())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  partNumber        String   @unique
-  year              String
-  make             String
-  model            String
-  fccId            String?
-  icNumber         String?
-  continentalNumber String?
-  frequency        String
-  battery          String
-  emergencyKey     String?
-  testKey          String?
-  manufacturer     String
-  buttons          Json
-  notes            String?
-  status           KeyStatus @default(AVAILABLE)
-  checkouts        KeyCheckout[]
+  id                    String   @id @default(cuid())
+  fccId                 String
+  icId                  String
+  manufacturer          String
+  manufacturerPartNumber String
+  frequency             String
+  battery               String
+  buttons               String
+  emergencyKey          String?
+  testKey               String?
+  replacesPN            String
+  aftermarketFor        String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  checkouts            KeyCheckout[]
 
-  @@index([make, model, year])
-  @@index([partNumber])
+  @@index([fccId])
+  @@index([manufacturerPartNumber])
+  @@index([replacesPN])
 }
 
 model KeyCheckout {
-  id        String   @id @default(cuid())
-  keyId     String
-  key       Key      @relation(fields: [keyId], references: [id])
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
-  checkedOut DateTime @default(now())
+  id         String    @id @default(cuid())
+  keyId      String
+  key        Key       @relation(fields: [keyId], references: [id])
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id])
+  checkedOut DateTime  @default(now())
   checkedIn  DateTime?
   notes      String?
 
@@ -85,11 +82,11 @@ model KeyCheckout {
 
 model TransponderKey {
   id              String   @id @default(cuid())
-  make            String
-  model           String
+  make            String   @db.VarChar(255)
+  model           String   @db.VarChar(255)
   yearStart       Int
   yearEnd         Int?
-  transponderType String
+  transponderType String   @db.VarChar(255)
   chipType        String   // JSON string of array
   compatibleParts String?  // JSON string of array
   frequency       String?  // Added field for frequency
@@ -98,9 +95,9 @@ model TransponderKey {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  @@index([make, model])
+  @@index([make])
+  @@index([model])
   @@index([transponderType])
-  @@index([chipType])  // Added index for chip type searches
 }
 
 model TransponderInventory {

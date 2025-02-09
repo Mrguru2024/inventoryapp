@@ -101,15 +101,18 @@ export async function getTransponderData(): Promise<TransponderKeyData[]> {
   }
 }
 
-export async function searchTransponders(query: string): Promise<TransponderData[]> {
-  if (!query || query.length < 3) return [];
-  
+export async function searchTransponders(searchTerm: string = ''): Promise<TransponderData[]> {
   try {
-    const response = await axios.get(`/api/transponders/search?q=${encodeURIComponent(query)}`);
-    return response.data;
+    const response = await fetch(`/api/transponders${searchTerm ? `?search=${searchTerm}` : ''}`);
+    
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    const data = await response.json();
+    return data;
   } catch (error) {
-    console.error('Search error:', error);
-    throw new Error('Failed to search transponder data');
+    console.error('Error fetching transponders:', error);
+    return [];
   }
 }
 

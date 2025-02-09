@@ -1,8 +1,15 @@
 'use client';
 
-import { SessionProvider } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { ReactNode } from 'react';
+import LoadingSpinner from './LoadingSpinner';
 
 export default function SessionWrapper({ children }: { children: ReactNode }) {
-  return <SessionProvider>{children}</SessionProvider>;
+  const { status } = useSession();
+
+  if (status === 'loading') {
+    return <LoadingSpinner />;
+  }
+
+  return <>{children}</>;
 } 

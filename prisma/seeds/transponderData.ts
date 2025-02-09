@@ -137,7 +137,7 @@ const PART_NUMBER_PATTERNS = {
   GMC_M3N: /^M3N-?[0-9]{8}$/,
   JEEP_OHT: /^OHT[0-9]{6}[A-Z]{2}$/,
   JEEP_IYZ: /^IYZ-[A-Z0-9]{4}$/,
-  JEEP_M3N: /^M3N[0-9]{8}$/,
+  JEEP_M3N: /^M3N-[0-9]{8}$/,
   JEEP_68: /^68[0-9]{6}[A-Z]{2}$/,
   MAZDA_CC: /^CC[0-9]{2}-67-5[A-Z]{3}$/,
   MAZDA_NE: /^NE[0-9]{2}-67-5[A-Z]{3}$/,

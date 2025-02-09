@@ -1,13 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { Suspense, ReactNode } from 'react';
 import "./globals.css";
-import ClientWrapper from './components/ClientWrapper';
-import ClientInit from './components/ClientInit';
-import LoadingSpinner from './components/LoadingSpinner';
-import ErrorBoundary from './components/ErrorBoundary';
-import SessionWrapper from './components/SessionWrapper';
-import Providers from './providers';
+import Providers from './components/Providers';
+import { Toaster } from "@/app/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,21 +14,14 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <Providers>
-          <SessionWrapper>
-            <ErrorBoundary>
-              <ClientInit>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <ClientWrapper>{children}</ClientWrapper>
-                </Suspense>
-              </ClientInit>
-            </ErrorBoundary>
-          </SessionWrapper>
+          {children}
+          <Toaster />
         </Providers>
       </body>
     </html>

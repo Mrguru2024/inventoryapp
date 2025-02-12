@@ -1,0 +1,191 @@
+{
+  "makes": [
+    {
+      "name": "BMW",
+      "modelCount": 2,
+      "models": [
+        {
+          "name": "1-Series",
+          "yearRange": "2004 - 2010",
+          "transponderTypes": [
+            "Philips Crypto 2"
+          ]
+        },
+        {
+          "name": "R1200GS",
+          "yearRange": "2005 - 2011",
+          "transponderTypes": [
+            "Philips Crypto 2"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CHEVROLET",
+      "modelCount": 1,
+      "models": [
+        {
+          "name": "SILVERADO",
+          "yearRange": "2019 - 2024",
+          "transponderTypes": [
+            "Hitag 3"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CHRYSLER",
+      "modelCount": 5,
+      "models": [
+        {
+          "name": "300",
+          "yearRange": "2011 - 2021",
+          "transponderTypes": [
+            "Hitag AES"
+          ]
+        },
+        {
+          "name": "ASPEN",
+          "yearRange": "2005 - 2009",
+          "transponderTypes": [
+            "Philips Crypto 2"
+          ]
+        },
+        {
+          "name": "CIRRUS",
+          "yearRange": "1999 - 2000",
+          "transponderTypes": [
+            "Texas Crypto"
+          ]
+        },
+        {
+          "name": "CROSSFIRE",
+          "yearRange": "2003 - 2008",
+          "transponderTypes": [
+            "Philips 33"
+          ]
+        },
+        {
+          "name": "PACIFICA",
+          "yearRange": "2017 - 2021",
+          "transponderTypes": [
+            "Hitag AES"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "FORD",
+      "modelCount": 5,
+      "models": [
+        {
+          "name": "EDGE",
+          "yearRange": "2015 - 2017",
+          "transponderTypes": [
+            "Texas Crypto 2"
+          ]
+        },
+        {
+          "name": "EXPLORER",
+          "yearRange": "2016 - 2017",
+          "transponderTypes": [
+            "Texas Crypto 2"
+          ]
+        },
+        {
+          "name": "F-150",
+          "yearRange": "2015 - 2025",
+          "transponderTypes": [
+            "Philips Crypto 3",
+            "4D63"
+          ]
+        },
+        {
+          "name": "FUSION",
+          "yearRange": "2017 - 2020",
+          "transponderTypes": [
+            "Philips Crypto 3"
+          ]
+        },
+        {
+          "name": "TRANSIT",
+          "yearRange": "2016 - 2025",
+          "transponderTypes": [
+            "Philips Crypto 3"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HONDA",
+      "modelCount": 1,
+      "models": [
+        {
+          "name": "CIVIC",
+          "yearRange": "2016 - 2022",
+          "transponderTypes": [
+            "G Chip",
+            "46"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "JAGUAR",
+      "modelCount": 2,
+      "models": [
+        {
+          "name": "F-PACE",
+          "yearRange": "2016 - 2025",
+          "transponderTypes": [
+            "Hitag Pro"
+          ]
+        },
+        {
+          "name": "XF",
+          "yearRange": "2013 - 2018",
+          "transponderTypes": [
+            "Hitag Pro"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "LINCOLN",
+      "modelCount": 2,
+      "models": [
+        {
+          "name": "AVIATOR",
+          "yearRange": "2020 - 2025",
+          "transponderTypes": [
+            "HiTAG Pro"
+          ]
+        },
+        {
+          "name": "CONTINENTAL",
+          "yearRange": "2016 - 2020",
+          "transponderTypes": [
+            "HiTAG Pro"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TOYOTA",
+      "modelCount": 1,
+      "models": [
+        {
+          "name": "CAMRY",
+          "yearRange": "2018 - 2023",
+          "transponderTypes": [
+            "H Chip",
+            "8A"
+          ]
+        }
+      ]
+    }
+  ],
+  "totalRecords": 29,
+  "uniqueMakes": 8,
+  "uniqueModels": 19
+}

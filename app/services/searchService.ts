@@ -1,13 +1,15 @@
 import Fuse from 'fuse.js';
 import { SearchSuggestion } from '@/app/types/search';
 
-const fuseOptions = {
-  keys: ['value', 'type'],
-  threshold: 0.3,
-  distance: 100
-};
+export function fuzzySearch<T>(items: T[], searchTerm: string, keys: (keyof T)[]): T[] {
+  const fuse = new Fuse(items, {
+    keys,
+    threshold: 0.3,
+    shouldSort: true,
+  });
 
-export function fuzzySearch(items: SearchSuggestion[], query: string): SearchSuggestion[] {
-  const fuse = new Fuse(items, fuseOptions);
-  return fuse.search(query).map(result => result.item);
+  if (!searchTerm) return items;
+  
+  const results = fuse.search(searchTerm);
+  return results.map(result => result.item);
 } 

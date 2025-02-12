@@ -1,11 +1,28 @@
 import { PrismaClient } from '@prisma/client';
+import { writeFileSync } from 'fs';
+import path from 'path';
+
 const prisma = new PrismaClient();
 
-async function checkTransponderData() {
+interface TransponderSummary {
+  makes: {
+    name: string;
+    modelCount: number;
+    models: {
+      name: string;
+      yearRange: string;
+      transponderTypes: string[];
+    }[];
+  }[];
+  totalRecords: number;
+  uniqueMakes: number;
+  uniqueModels: number;
+}
+
+async function getTransponderSummary(): Promise<TransponderSummary> {
   try {
-    console.log('Fetching all transponder data...\n');
-    
-    const transponders = await prisma.transponderKey.findMany({
+    // Get all transponder records
+    const records = await prisma.transponderKey.findMany({
       orderBy: [
         { make: 'asc' },
         { model: 'asc' },
@@ -13,37 +30,89 @@ async function checkTransponderData() {
       ]
     });
 
-    console.log(`Found ${transponders.length} transponder records\n`);
+    const makeMap = new Map<string, Set<string>>();
+    const summary: TransponderSummary = {
+      makes: [],
+      totalRecords: records.length,
+      uniqueMakes: 0,
+      uniqueModels: 0
+    };
 
-    transponders.forEach((transponder) => {
-      console.log('----------------------------------------');
-      console.log(`Make: ${transponder.make}`);
-      console.log(`Model: ${transponder.model}`);
-      console.log(`Years: ${transponder.yearStart}-${transponder.yearEnd || 'present'}`);
-      console.log(`Transponder Type: ${transponder.transponderType}`);
-      console.log(`Chip Types: ${transponder.chipType}`);
-      console.log(`Compatible Parts: ${transponder.compatibleParts}`);
-      console.log(`Frequency: ${transponder.frequency || 'N/A'}`);
-      console.log(`Notes: ${transponder.notes || 'N/A'}`);
-      console.log(`Dual System: ${transponder.dualSystem ? 'Yes' : 'No'}`);
-      console.log('----------------------------------------\n');
+    // Group by make
+    records.forEach(record => {
+      if (!makeMap.has(record.make)) {
+        makeMap.set(record.make, new Set());
+      }
+      makeMap.get(record.make)?.add(record.model);
     });
 
-    // Summary statistics
-    const makeCount = new Set(transponders.map(t => t.make)).size;
-    const modelCount = new Set(transponders.map(t => t.model)).size;
-    const transponderTypes = new Set(transponders.map(t => t.transponderType)).size;
+    // Process each make
+    for (const [makeName, models] of makeMap) {
+      const makeRecords = records.filter(r => r.make === makeName);
+      const modelSummaries = Array.from(models).map(modelName => {
+        const modelRecords = makeRecords.filter(r => r.model === modelName);
+        const yearRange = `${Math.min(...modelRecords.map(r => r.yearStart))} - ${
+          Math.max(...modelRecords.map(r => r.yearEnd || new Date().getFullYear()))
+        }`;
+        const transponderTypes = Array.from(new Set(modelRecords.map(r => r.transponderType)));
 
-    console.log('Summary:');
-    console.log(`Total Makes: ${makeCount}`);
-    console.log(`Total Models: ${modelCount}`);
-    console.log(`Different Transponder Types: ${transponderTypes}`);
+        return {
+          name: modelName,
+          yearRange,
+          transponderTypes
+        };
+      });
+
+      summary.makes.push({
+        name: makeName,
+        modelCount: models.size,
+        models: modelSummaries
+      });
+    }
+
+    summary.uniqueMakes = makeMap.size;
+    summary.uniqueModels = Array.from(makeMap.values()).reduce((acc, models) => acc + models.size, 0);
+
+    return summary;
+  } catch (error) {
+    console.error('Error getting transponder summary:', error);
+    throw error;
+  }
+}
+
+async function main() {
+  try {
+    console.log('Analyzing transponder database...\n');
+    
+    const summary = await getTransponderSummary();
+    
+    // Print summary
+    console.log('=== Database Summary ===');
+    console.log(`Total Records: ${summary.totalRecords}`);
+    console.log(`Unique Makes: ${summary.uniqueMakes}`);
+    console.log(`Unique Models: ${summary.uniqueModels}\n`);
+    
+    // Print details for each make
+    console.log('=== Make Details ===');
+    summary.makes.forEach(make => {
+      console.log(`\n${make.name} (${make.modelCount} models):`);
+      make.models.forEach(model => {
+        console.log(`  - ${model.name}`);
+        console.log(`    Years: ${model.yearRange}`);
+        console.log(`    Transponders: ${model.transponderTypes.join(', ')}`);
+      });
+    });
+
+    // Save detailed report to file
+    const reportPath = path.join(process.cwd(), 'data', 'transponder-report.json');
+    writeFileSync(reportPath, JSON.stringify(summary, null, 2));
+    console.log(`\nDetailed report saved to: ${reportPath}`);
 
   } catch (error) {
-    console.error('Error fetching transponder data:', error);
+    console.error('Error:', error);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-checkTransponderData(); 
+main(); 

@@ -1,0 +1,4 @@
+make,model,yearStart,yearEnd,transponderType,chipType,frequency,notes,compatibleParts
+TOYOTA,CAMRY,2018,2022,8A,H,433MHz,Smart key system,HYQ14FBA
+HONDA,CIVIC,2016,2021,46,G,313.85MHz,Flip key available,N5F-A05TAA
+FORD,F-150,2015,,4D63,H,902MHz,,M3N-A2C31243300

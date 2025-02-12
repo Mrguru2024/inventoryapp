@@ -1,12 +1,44 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { searchTransponders } from '@/app/services/transponderService';
 import LoadingSpinner from './LoadingSpinner';
 import type { TransponderData } from '@/app/services/transponderService';
 import { useDebounce } from '@/app/hooks/useDebounce';
 import { AFTERMARKET_CROSS_REF } from '@/app/lib/transponder-data';
+import { Card } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { 
+  AlertCircle, 
+  Search, 
+  Filter, 
+  ChevronDown, 
+  RotateCcw,
+  Download,
+  SortAsc,
+  SortDesc 
+} from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/app/components/ui/select';
+
+interface FilterState {
+  chipType: string;
+  frequency: string;
+  transponderType: string;
+  yearRange: [number, number];
+}
+
+interface SortState {
+  field: keyof TransponderData;
+  direction: 'asc' | 'desc';
+}
 
 export default function TransponderSearch() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,6 +47,20 @@ export default function TransponderSearch() {
   const [selectedYearRange, setSelectedYearRange] = useState<string>('');
   const [selectedTransponderType, setSelectedTransponderType] = useState<string>('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  const [filters, setFilters] = useState<FilterState>({
+    chipType: '',
+    frequency: '',
+    transponderType: '',
+    yearRange: [1990, 2024]
+  });
+
+  const [sort, setSort] = useState<SortState>({
+    field: 'make',
+    direction: 'asc'
+  });
+
+  const [showFilters, setShowFilters] = useState(false);
 
   // Fetch data with filters
   const { data: results = [], isLoading } = useQuery({
@@ -139,6 +185,12 @@ export default function TransponderSearch() {
     setSelectedModel('');
     setSelectedTransponderType('');
     setSearchTerm('');
+    setFilters({
+      chipType: '',
+      frequency: '',
+      transponderType: '',
+      yearRange: [1990, 2024]
+    });
   };
 
   // Debug logs
@@ -151,6 +203,25 @@ export default function TransponderSearch() {
       filteredResults: filteredResults.length
     });
   }, [makes, selectedMake, models, selectedModel, filteredResults]);
+
+  const handleFilterChange = (key: keyof FilterState, value: string | [number, number]) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const handleSort = (field: keyof TransponderData) => {
+    setSort(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const exportResults = () => {
+    // Implement export functionality
+    console.log('Exporting results...');
+  };
 
   return (
     <div className="w-full bg-white dark:bg-gray-800 rounded-xl shadow-lg">
@@ -262,6 +333,89 @@ export default function TransponderSearch() {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Filter Controls */}
+        <div className="flex justify-between items-center">
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2"
+          >
+            <Filter className="h-4 w-4" />
+            Filters
+            <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+          </Button>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={resetFilters}
+              className="flex items-center gap-2"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Reset
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={exportResults}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+          </div>
+        </div>
+
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Chip Type</label>
+              <Input
+                placeholder="Filter by chip type..."
+                value={filters.chipType}
+                onChange={(e) => handleFilterChange('chipType', e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Frequency</label>
+              <Input
+                placeholder="Filter by frequency..."
+                value={filters.frequency}
+                onChange={(e) => handleFilterChange('frequency', e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Transponder Type</label>
+              <Input
+                placeholder="Filter by transponder type..."
+                value={filters.transponderType}
+                onChange={(e) => handleFilterChange('transponderType', e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Sort Controls */}
+        <div className="flex gap-2">
+          {['make', 'model', 'chipType', 'frequency'].map((field) => (
+            <Button
+              key={field}
+              variant="outline"
+              size="sm"
+              onClick={() => handleSort(field as keyof TransponderData)}
+              className="flex items-center gap-2"
+            >
+              {field.charAt(0).toUpperCase() + field.slice(1)}
+              {sort.field === field && (
+                sort.direction === 'asc' ? 
+                  <SortAsc className="h-4 w-4" /> : 
+                  <SortDesc className="h-4 w-4" />
+              )}
+            </Button>
+          ))}
         </div>
 
         {/* Results Section */}

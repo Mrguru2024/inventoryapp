@@ -4,8 +4,10 @@ import { NextResponse } from 'next/server';
 export default withAuth(
   function middleware(req) {
     const isAuth = !!req.nextauth.token;
-    const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
+    const isAuthPage = req.nextUrl.pathname === '/';
+    const role = req.nextauth.token?.role?.toLowerCase();
 
+    // Handle root/login page
     if (isAuthPage) {
       if (isAuth) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
@@ -13,15 +15,15 @@ export default withAuth(
       return null;
     }
 
+    // Require authentication for all routes
     if (!isAuth) {
-      let from = req.nextUrl.pathname;
-      if (req.nextUrl.search) {
-        from += req.nextUrl.search;
-      }
+      return NextResponse.redirect(new URL('/', req.url));
+    }
 
-      return NextResponse.redirect(
-        new URL(`/auth/login?from=${encodeURIComponent(from)}`, req.url)
-      );
+    // Protect admin-only routes
+    const adminOnlyPaths = ['/users', '/settings'];
+    if (adminOnlyPaths.some(path => req.nextUrl.pathname.startsWith(path)) && role !== 'admin') {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
     }
   },
   {
@@ -33,6 +35,10 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/',
+    '/dashboard/:path*',
+    '/users/:path*',
+    '/settings/:path*',
+    '/key-programming/:path*',
   ]
 }; 

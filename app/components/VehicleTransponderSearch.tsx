@@ -11,6 +11,7 @@ import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
 import debounce from 'lodash/debounce';
 import logger from '@/app/utils/logger';
 import SearchAnalyticsService from '@/app/services/analyticsService';
+import { useQuery } from '@tanstack/react-query';
 
 interface Make {
   MakeId: number;
@@ -63,6 +64,30 @@ interface SearchHistory {
   query: string;
   type: 'make' | 'model' | 'chipType' | 'transponderType';
   timestamp: number;
+}
+
+interface TransponderResponse {
+  transponders: TransponderData[];
+  filters: {
+    makes: string[];
+    models: string[];
+    chipTypes: string[];
+    transponderTypes: string[];
+  };
+  count: number;
+}
+
+interface TransponderData {
+  id: string;
+  make: string;
+  model: string;
+  yearStart: number;
+  yearEnd?: number;
+  transponderType: string;
+  chipType: string[];
+  frequency: string;
+  compatibleParts: string[];
+  notes?: string;
 }
 
 const RECENT_SEARCHES_KEY = 'recent-searches';
@@ -122,6 +147,7 @@ export default function VehicleTransponderSearch() {
   const [showHistory, setShowHistory] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
   const [popularSearches, setPopularSearches] = useState<{ query: string; count: number }[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Add categories
   const categories = [
@@ -132,73 +158,48 @@ export default function VehicleTransponderSearch() {
     { id: 'transponders', name: 'Transponders' }
   ];
 
-  // Add data validation
-  const validateTransponderData = (data: TransponderKeyData[]): ValidationError[] => {
-    const errors: ValidationError[] = [];
-    
-    data.forEach(transponder => {
-      if (!transponder.make) {
-        errors.push({ field: 'make', message: `Missing make for transponder ${transponder.id}` });
-      }
-      if (!transponder.model) {
-        errors.push({ field: 'model', message: `Missing model for transponder ${transponder.id}` });
-      }
-      if (!transponder.yearStart) {
-        errors.push({ field: 'yearStart', message: `Missing year start for transponder ${transponder.id}` });
-      }
-      if (!transponder.chipType || transponder.chipType.length === 0) {
-        errors.push({ field: 'chipType', message: `Missing chip type for transponder ${transponder.id}` });
-      }
-    });
+  const validateTransponderData = (data: TransponderResponse) => {
+    if (!data || !data.transponders) {
+      logger.warn('No transponder data received');
+      return [];
+    }
 
-    return errors;
+    logger.info(`Validating ${data.transponders.length} transponders`);
+    return data.transponders.filter(t => {
+      // Add your validation logic here
+      return (
+        t.make &&
+        t.model &&
+        t.yearStart &&
+        t.transponderType &&
+        Array.isArray(t.chipType) &&
+        Array.isArray(t.compatibleParts)
+      );
+    });
   };
 
-  // Enhanced data fetching with better error handling
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      setLoadingStates(prev => ({ ...prev, makes: true, transponders: true }));
-      try {
-        logger.info('Fetching initial data...');
-        
-        // Fetch makes from NHTSA API
-        const makesResponse = await fetch('https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json');
-        if (!makesResponse.ok) {
-          throw new Error(`NHTSA API error: ${makesResponse.statusText}`);
-        }
-        const makesData = await makesResponse.json();
-        logger.debug('Makes data received:', makesData);
-        
-        if (makesData.Results) {
-          setMakes(makesData.Results);
-        }
+  const fetchInitialData = async () => {
+    try {
+      const response = await getTransponders();
+      logger.info(`Fetched ${response.transponders?.length} transponders`);
 
-        // Fetch transponder data with error handling
-        const transpondersData = await getTransponders();
-        if (!transpondersData.length) {
-          logger.warn('No transponder data received');
-        } else {
-          logger.debug('Transponders data received:', transpondersData);
-        }
-        
-        // Validate transponder data
-        const validationErrors = validateTransponderData(transpondersData);
-        if (validationErrors.length > 0) {
-          logger.warn('Validation errors found:', validationErrors);
-          setValidationErrors(validationErrors);
-        }
+      const validData = validateTransponderData(response);
+      setTransponders(validData);
 
-        setTransponders(transpondersData);
-      } catch (error) {
-        logger.error('Error fetching initial data:', error);
-        setError(error instanceof Error ? error.message : 'Failed to load initial data');
-      } finally {
-        setLoadingStates(prev => ({ ...prev, makes: false, transponders: false }));
+      // Update filter options
+      if (response.filters) {
+        setMakes(response.filters.makes || []);
+        setModels(response.filters.models || []);
+        setChipTypes(response.filters.chipTypes || []);
+        setTransponderTypes(response.filters.transponderTypes || []);
       }
-    };
 
-    fetchInitialData();
-  }, []);
+      setTotalCount(response.count || 0);
+    } catch (error) {
+      logger.error('Error fetching initial data:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch data');
+    }
+  };
 
   // Enhanced models fetching
   const fetchModels = async (make: string) => {

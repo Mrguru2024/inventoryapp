@@ -1,64 +1,136 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import logger from '@/app/utils/logger';
+import { type NextRequest } from 'next/server';
 
 // Add cache headers
 export const revalidate = 3600; // Revalidate every hour
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search')?.toUpperCase() || '';
-    const make = searchParams.get('make')?.toUpperCase() || '';
-    const model = searchParams.get('model')?.toUpperCase() || '';
-    const transponderType = searchParams.get('type') || '';
-
-    const where: any = {};
-    const conditions = [];
-
-    // Add search condition if search term exists
-    if (search) {
-      conditions.push(
-        { make: { contains: search } },
-        { model: { contains: search } },
-        { transponderType: { contains: search } }
-      );
-      where.OR = conditions;
+    // Verify database connection
+    if (!prisma) {
+      throw new Error('Database client not initialized');
     }
 
-    // Add exact match filters
-    if (make) where.make = make;
-    if (model) where.model = model;
-    if (transponderType) where.transponderType = transponderType;
+    // Get query parameters
+    const searchParams = request.nextUrl.searchParams;
+    const make = searchParams.get('make');
+    const model = searchParams.get('model');
+    const chipType = searchParams.get('chipType');
+    const transponderType = searchParams.get('transponderType');
 
-    const transponders = await prisma.transponderKey.findMany({
-      where,
-      orderBy: [
-        { make: 'asc' },
-        { model: 'asc' }
-      ]
+    // Build where clause based on filters
+    const where = {
+      ...(make && { make: { contains: make, mode: 'insensitive' as const } }),
+      ...(model && { model: { contains: model, mode: 'insensitive' as const } }),
+      ...(transponderType && { transponderType: { contains: transponderType, mode: 'insensitive' as const } }),
+      // For chipType, we need to search within the JSON array
+      ...(chipType && { 
+        chipType: {
+          contains: chipType,
+          mode: 'insensitive' as const
+        }
+      })
+    };
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Get filtered count
+      const count = await tx.transponder.count({ where });
+      logger.info(`Total filtered transponder count: ${count}`);
+
+      // Get filtered transponders
+      const transponders = await tx.transponder.findMany({
+        where,
+        select: {
+          id: true,
+          make: true,
+          model: true,
+          yearStart: true,
+          yearEnd: true,
+          transponderType: true,
+          chipType: true,
+          frequency: true,
+          compatibleParts: true,
+          notes: true
+        },
+        orderBy: [
+          { make: 'asc' },
+          { model: 'asc' },
+          { yearStart: 'desc' }
+        ]
+      });
+
+      // Get unique values for filters
+      const [makes, models, chipTypes, transponderTypes] = await Promise.all([
+        tx.transponder.findMany({
+          select: { make: true },
+          distinct: ['make'],
+          orderBy: { make: 'asc' }
+        }),
+        tx.transponder.findMany({
+          select: { model: true },
+          distinct: ['model'],
+          orderBy: { model: 'asc' }
+        }),
+        tx.transponder.findMany({
+          select: { chipType: true },
+          distinct: ['chipType']
+        }),
+        tx.transponder.findMany({
+          select: { transponderType: true },
+          distinct: ['transponderType'],
+          orderBy: { transponderType: 'asc' }
+        })
+      ]);
+
+      return {
+        transponders,
+        filters: {
+          makes: makes.map(m => m.make),
+          models: models.map(m => m.model),
+          chipTypes: [...new Set(chipTypes.flatMap(c => 
+            typeof c.chipType === 'string' ? JSON.parse(c.chipType) : c.chipType
+          ))].sort(),
+          transponderTypes: transponderTypes.map(t => t.transponderType)
+        },
+        count
+      };
     });
 
-    // Transform the data
-    const transformedData = transponders.map(t => ({
-      id: t.id,
-      make: t.make,
-      model: t.model,
-      yearStart: t.yearStart,
-      yearEnd: t.yearEnd,
-      transponderType: t.transponderType,
-      chipType: Array.isArray(t.chipType) ? t.chipType : JSON.parse(t.chipType || '[]'),
-      compatibleParts: t.compatibleParts ? 
-        (Array.isArray(t.compatibleParts) ? t.compatibleParts : JSON.parse(t.compatibleParts)) 
-        : null,
-      frequency: t.frequency,
-      notes: t.notes,
-      dualSystem: t.dualSystem
-    }));
+    // Format the transponder data
+    const formattedTransponders = result.transponders.map(t => {
+      try {
+        return {
+          ...t,
+          chipType: typeof t.chipType === 'string' ? JSON.parse(t.chipType) : t.chipType,
+          compatibleParts: typeof t.compatibleParts === 'string' ? 
+            JSON.parse(t.compatibleParts) : t.compatibleParts
+        };
+      } catch (parseError) {
+        logger.error('Error parsing transponder data:', parseError, t);
+        return t;
+      }
+    });
 
-    return NextResponse.json(transformedData);
+    return NextResponse.json({
+      transponders: formattedTransponders,
+      filters: result.filters,
+      count: result.count
+    });
   } catch (error) {
-    console.error('Error in transponders route:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    // More detailed error logging
+    logger.error('API error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause
+    });
+
+    return NextResponse.json(
+      { error: 'Failed to fetch transponders', details: error.message },
+      { status: 500 }
+    );
   }
 }
 

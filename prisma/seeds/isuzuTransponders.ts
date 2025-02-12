@@ -1,3 +1,5 @@
+import { BaseTransponderData, createTransponderEntry } from './transponderData';
+
 namespace TransponderSeeds {
   export const isuzuTransponderData = [
     // Passenger Vehicles
@@ -76,6 +78,21 @@ namespace TransponderSeeds {
       chipType: ["Hitag2", "ID46", "PCF7936", "JMA TP12", "SILCA T14", "CN3"],
       notes: "Common system across N-series trucks"
     }
+  ];
+
+  export const isuzuTransponders = [
+    createTransponderEntry({
+      make: 'ISUZU',
+      model: 'D-MAX',
+      yearStart: 2020,
+      yearEnd: 2024,
+      transponderType: 'ID4D-DST80',
+      chipType: 'DST80',
+      frequency: '433.92MHz',
+      compatibleParts: '8981959360',
+      notes: 'Smart key system'
+    }),
+    // Add more models...
   ];
 }
 

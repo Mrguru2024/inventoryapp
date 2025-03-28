@@ -2,11 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['localhost'],
+    domains: ["localhost"],
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: '**',
+        protocol: "https",
+        hostname: "**",
       },
     ],
   },
@@ -25,20 +25,17 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: '/technician',
-        destination: '/technician/dashboard',
+        source: "/technician",
+        destination: "/technician/dashboard",
         permanent: true,
       },
       {
-        source: '/admin',
-        destination: '/admin/dashboard',
+        source: "/admin",
+        destination: "/admin/dashboard",
         permanent: true,
       },
     ];
   },
-  experimental: {
-    serverActions: true,
-  }
 };
 
 module.exports = nextConfig;

@@ -2,25 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import InventoryList from "@/app/components/InventoryList";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { prisma } from "@/lib/prisma";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
-
-async function getInventoryItems() {
-  const items = await prisma.inventoryItem.findMany({
-    orderBy: {
-      name: "asc",
-    },
-  });
-  return items;
-}
+import QueryClientWrapper from "@/app/components/QueryClientWrapper";
 
 export default async function InventoryPage() {
   const session = await getServerSession(authOptions);
@@ -34,8 +16,6 @@ export default async function InventoryPage() {
     redirect("/");
   }
 
-  const initialItems = await getInventoryItems();
-
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -48,9 +28,9 @@ export default async function InventoryPage() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <QueryClientProvider client={queryClient}>
-          <InventoryList items={initialItems} />
-        </QueryClientProvider>
+        <QueryClientWrapper>
+          <InventoryList />
+        </QueryClientWrapper>
       </div>
     </div>
   );

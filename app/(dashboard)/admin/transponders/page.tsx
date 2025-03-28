@@ -2,15 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import TransponderManagement from "@/app/components/TransponderManagement";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
+import QueryClientWrapper from "@/app/components/QueryClientWrapper";
 
 export default async function TranspondersPage() {
   const session = await getServerSession(authOptions);
@@ -31,14 +23,14 @@ export default async function TranspondersPage() {
           Transponder Management
         </h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Manage transponder inventory and search
+          Manage transponder inventory and programming guides
         </p>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <QueryClientProvider client={queryClient}>
+        <QueryClientWrapper>
           <TransponderManagement />
-        </QueryClientProvider>
+        </QueryClientWrapper>
       </div>
     </div>
   );

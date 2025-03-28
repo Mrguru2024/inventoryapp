@@ -1,30 +1,40 @@
-import { useState, useMemo } from 'react';
-import { Search, ChipIcon, Key, Info } from 'lucide-react';
-import { TransponderKeyData } from '@/app/services/transponderService';
+import { useState, useMemo } from "react";
+import { Search, Cpu, Key, Info } from "lucide-react";
+import { TransponderKeyData } from "@/app/services/transponderService";
 
 interface TransponderIdentifierProps {
   data: TransponderKeyData[];
   onSelect?: (transponder: TransponderKeyData) => void;
 }
 
-export default function TransponderIdentifier({ data, onSelect }: TransponderIdentifierProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'make' | 'chip' | 'year'>('make');
-  const [selectedTransponder, setSelectedTransponder] = useState<TransponderKeyData | null>(null);
+export default function TransponderIdentifier({
+  data,
+  onSelect,
+}: TransponderIdentifierProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState<"make" | "chip" | "year">(
+    "make"
+  );
+  const [selectedTransponder, setSelectedTransponder] =
+    useState<TransponderKeyData | null>(null);
 
   const filteredData = useMemo(() => {
     if (!searchTerm) return data;
-    
+
     const term = searchTerm.toLowerCase();
-    return data.filter(item => {
+    return data.filter((item) => {
       switch (filterType) {
-        case 'make':
+        case "make":
           return `${item.make} ${item.model}`.toLowerCase().includes(term);
-        case 'chip':
-          return item.chipType.some(chip => chip.toLowerCase().includes(term));
-        case 'year':
-          return item.yearStart.toString().includes(term) || 
-                 (item.yearEnd?.toString() || '').includes(term);
+        case "chip":
+          return item.chipType.some((chip) =>
+            chip.toLowerCase().includes(term)
+          );
+        case "year":
+          return (
+            item.yearStart.toString().includes(term) ||
+            (item.yearEnd?.toString() || "").includes(term)
+          );
         default:
           return false;
       }
@@ -33,9 +43,12 @@ export default function TransponderIdentifier({ data, onSelect }: TransponderIde
 
   const compatibleTransponders = useMemo(() => {
     if (!selectedTransponder) return [];
-    return data.filter(item => 
-      item.id !== selectedTransponder.id && 
-      item.chipType.some(chip => selectedTransponder.chipType.includes(chip))
+    return data.filter(
+      (item) =>
+        item.id !== selectedTransponder.id &&
+        item.chipType.some((chip) =>
+          selectedTransponder.chipType.includes(chip)
+        )
     );
   }, [data, selectedTransponder]);
 
@@ -60,7 +73,9 @@ export default function TransponderIdentifier({ data, onSelect }: TransponderIde
         </div>
         <select
           value={filterType}
-          onChange={(e) => setFilterType(e.target.value as 'make' | 'chip' | 'year')}
+          onChange={(e) =>
+            setFilterType(e.target.value as "make" | "chip" | "year")
+          }
           className="px-4 py-2 border rounded-md dark:bg-gray-800"
         >
           <option value="make">Make/Model</option>
@@ -76,23 +91,28 @@ export default function TransponderIdentifier({ data, onSelect }: TransponderIde
             key={`${transponder.make}-${transponder.model}-${transponder.yearStart}`}
             className={`p-4 border rounded-lg cursor-pointer transition-colors ${
               selectedTransponder?.id === transponder.id
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                : 'hover:border-gray-300 dark:hover:border-gray-600'
+                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
+                : "hover:border-gray-300 dark:hover:border-gray-600"
             }`}
             onClick={() => handleTransponderSelect(transponder)}
           >
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="font-medium">{transponder.make} {transponder.model}</h3>
+                <h3 className="font-medium">
+                  {transponder.make} {transponder.model}
+                </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {transponder.yearStart}{transponder.yearEnd ? `-${transponder.yearEnd}` : '+'}
+                  {transponder.yearStart}
+                  {transponder.yearEnd ? `-${transponder.yearEnd}` : "+"}
                 </p>
               </div>
-              <ChipIcon className="h-5 w-5 text-blue-500" />
+              <Cpu className="h-5 w-5 text-blue-500" />
             </div>
-            
+
             <div className="mt-2">
-              <p className="text-sm font-medium">System: {transponder.transponderType}</p>
+              <p className="text-sm font-medium">
+                System: {transponder.transponderType}
+              </p>
               <div className="mt-1 flex flex-wrap gap-1">
                 {transponder.chipType.map((chip) => (
                   <span
@@ -111,8 +131,10 @@ export default function TransponderIdentifier({ data, onSelect }: TransponderIde
       {/* Selected Transponder Details */}
       {selectedTransponder && (
         <div className="mt-6 p-4 border rounded-lg">
-          <h3 className="text-lg font-medium mb-4">Selected Transponder Details</h3>
-          
+          <h3 className="text-lg font-medium mb-4">
+            Selected Transponder Details
+          </h3>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h4 className="font-medium mb-2">System Information</h4>
@@ -122,7 +144,10 @@ export default function TransponderIdentifier({ data, onSelect }: TransponderIde
                 <dt className="text-sm text-gray-500 mt-2">Compatible Chips</dt>
                 <dd className="flex flex-wrap gap-1">
                   {selectedTransponder.chipType.map((chip) => (
-                    <span key={chip} className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 rounded">
+                    <span
+                      key={chip}
+                      className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 rounded"
+                    >
                       {chip}
                     </span>
                   ))}
@@ -135,7 +160,10 @@ export default function TransponderIdentifier({ data, onSelect }: TransponderIde
                 <h4 className="font-medium mb-2">Compatible Parts</h4>
                 <div className="flex flex-wrap gap-1">
                   {selectedTransponder.compatibleParts.map((part) => (
-                    <span key={part} className="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 rounded">
+                    <span
+                      key={part}
+                      className="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 rounded"
+                    >
                       {part}
                     </span>
                   ))}
@@ -147,16 +175,21 @@ export default function TransponderIdentifier({ data, onSelect }: TransponderIde
           {/* Compatible Vehicles Section */}
           {compatibleTransponders.length > 0 && (
             <div className="mt-4">
-              <h4 className="font-medium mb-2">Vehicles with Compatible Transponders</h4>
+              <h4 className="font-medium mb-2">
+                Vehicles with Compatible Transponders
+              </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {compatibleTransponders.map((transponder) => (
                   <div
                     key={`${transponder.make}-${transponder.model}-${transponder.yearStart}`}
                     className="p-2 text-sm border rounded"
                   >
-                    <p className="font-medium">{transponder.make} {transponder.model}</p>
+                    <p className="font-medium">
+                      {transponder.make} {transponder.model}
+                    </p>
                     <p className="text-gray-600 dark:text-gray-400">
-                      {transponder.yearStart}{transponder.yearEnd ? `-${transponder.yearEnd}` : '+'}
+                      {transponder.yearStart}
+                      {transponder.yearEnd ? `-${transponder.yearEnd}` : "+"}
                     </p>
                   </div>
                 ))}
@@ -167,4 +200,4 @@ export default function TransponderIdentifier({ data, onSelect }: TransponderIde
       )}
     </div>
   );
-} 
+}

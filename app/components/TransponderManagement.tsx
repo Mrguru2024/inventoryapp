@@ -1,15 +1,30 @@
-import { useState, useEffect } from 'react';
-import TransponderIdentifier from './TransponderIdentifier';
-import TransponderInventoryManager from './TransponderInventoryManager';
-import ProgrammingGuideGenerator from './ProgrammingGuideGenerator';
-import { transponderService } from '@/app/services/transponderService';
-import { transponderInventoryService } from '@/app/services/transponderInventoryService';
-import { toast } from 'react-hot-toast';
+"use client";
+
+import { useState, useEffect } from "react";
+import TransponderIdentifier from "./TransponderIdentifier";
+import TransponderInventoryManager from "./TransponderInventoryManager";
+import ProgrammingGuideGenerator from "./ProgrammingGuideGenerator";
+import {
+  transponderService,
+  TransponderKeyData,
+} from "@/app/services/transponderService";
+import {
+  transponderInventoryService,
+  TransponderInventoryItem,
+} from "@/app/services/transponderInventoryService";
+import { useToast } from "@/app/components/ui/use-toast";
+import { getTransponderData } from "@/app/services/transponderService";
 
 export default function TransponderManagement() {
-  const [transponderData, setTransponderData] = useState([]);
-  const [inventoryLevels, setInventoryLevels] = useState([]);
-  const [selectedTransponder, setSelectedTransponder] = useState(null);
+  const [transponderData, setTransponderData] = useState<TransponderKeyData[]>(
+    []
+  );
+  const [inventoryLevels, setInventoryLevels] = useState<
+    TransponderInventoryItem[]
+  >([]);
+  const [selectedTransponder, setSelectedTransponder] =
+    useState<TransponderKeyData | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadData();
@@ -18,13 +33,17 @@ export default function TransponderManagement() {
   const loadData = async () => {
     try {
       const [transponders, inventory] = await Promise.all([
-        transponderService.getAllTransponders(),
-        transponderInventoryService.getInventoryLevels()
+        getTransponderData(),
+        transponderInventoryService.getInventoryLevels(),
       ]);
       setTransponderData(transponders);
       setInventoryLevels(inventory);
     } catch (error) {
-      toast.error('Failed to load transponder data');
+      toast({
+        title: "Error",
+        description: "Failed to load transponder data",
+        variant: "destructive",
+      });
     }
   };
 
@@ -32,15 +51,25 @@ export default function TransponderManagement() {
     try {
       await transponderInventoryService.updateStock(id, quantity);
       await loadData(); // Refresh data
-      toast.success('Stock updated successfully');
+      toast({
+        title: "Success",
+        description: "Stock updated successfully",
+      });
     } catch (error) {
-      toast.error('Failed to update stock');
+      toast({
+        title: "Error",
+        description: "Failed to update stock",
+        variant: "destructive",
+      });
     }
   };
 
   const handleOrderStock = async (item: TransponderInventoryItem) => {
     // Implement order logic
-    toast.success(`Order placed for ${item.transponderType}`);
+    toast({
+      title: "Success",
+      description: `Order placed for ${item.transponderType}`,
+    });
   };
 
   return (
@@ -48,7 +77,7 @@ export default function TransponderManagement() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
           <h2 className="text-2xl font-bold mb-4">Transponder Lookup</h2>
-          <TransponderIdentifier 
+          <TransponderIdentifier
             data={transponderData}
             onSelect={setSelectedTransponder}
           />
@@ -75,4 +104,4 @@ export default function TransponderManagement() {
       </div>
     </div>
   );
-} 
+}

@@ -13,9 +13,10 @@ model User {
   email     String    @unique
   password  String
   role      Role      @default(TECHNICIAN)
-  emailVerified DateTime?
   requests  Request[]
-  keyCheckouts KeyCheckout[]
+  notifications Notification[]
+  resetToken String?
+  resetTokenExpiry DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
@@ -44,96 +45,23 @@ model Request {
   updatedAt        DateTime  @updatedAt
 }
 
-model Key {
-  id                    String   @id @default(cuid())
-  fccId                 String
-  icId                  String
-  manufacturer          String
-  manufacturerPartNumber String
-  frequency             String
-  battery               String
-  buttons               String
-  emergencyKey          String?
-  testKey               String?
-  replacesPN            String
-  aftermarketFor        String
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  checkouts            KeyCheckout[]
-
-  @@index([fccId])
-  @@index([manufacturerPartNumber])
-  @@index([replacesPN])
-}
-
-model KeyCheckout {
-  id         String    @id @default(cuid())
-  keyId      String
-  key        Key       @relation(fields: [keyId], references: [id])
-  userId     Int
-  user       User      @relation(fields: [userId], references: [id])
-  checkedOut DateTime  @default(now())
-  checkedIn  DateTime?
-  notes      String?
-
-  @@index([keyId])
-  @@index([userId])
-}
-
-model TransponderKey {
-  id              String   @id @default(cuid())
-  make            String   @db.VarChar(255)
-  model           String   @db.VarChar(255)
-  yearStart       Int
-  yearEnd         Int?
-  transponderType String   @db.VarChar(255)
-  chipType        String   // JSON string of array
-  compatibleParts String?  // JSON string of array
-  frequency       String?  // Added field for frequency
-  notes           String?
-  dualSystem      Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([make])
-  @@index([model])
-  @@index([transponderType])
-}
-
-model TransponderInventory {
-  id              String   @id @default(cuid())
-  transponderType String
-  chipType        String   @default("[]")
-  quantity        Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-}
-
-model SearchAnalytics {
-  id           String   @id @default(cuid())
-  query        String
-  category     String
-  resultsCount Int
-  filters      String?  // JSON string
-  timestamp    DateTime @default(now())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 enum Role {
   ADMIN
   TECHNICIAN
+  CUSTOMER
 }
 
 enum Status {
   PENDING
   APPROVED
   REJECTED
-}
-
-enum KeyStatus {
-  AVAILABLE
-  CHECKED_OUT
-  MAINTENANCE
-  LOST
-}
+} 

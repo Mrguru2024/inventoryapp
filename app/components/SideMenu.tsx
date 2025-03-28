@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { UserRole } from '@/app/lib/auth/types';
-import { hasPermission, isSuperAdmin } from '@/app/lib/auth/permissions';
-import LoadingSpinner from './LoadingSpinner';
-import { cn } from '@/lib/utils';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { UserRole } from "@/app/lib/auth/types";
+import { hasPermission, isSuperAdmin } from "@/app/lib/auth/permissions";
+import LoadingSpinner from "./LoadingSpinner";
+import { cn } from "@/lib/utils";
 import {
   HomeIcon,
   KeyIcon,
@@ -14,14 +14,13 @@ import {
   UsersIcon,
   DatabaseIcon,
   SearchIcon,
-  WrenchIcon,
-  type Icon
-} from 'lucide-react';
+  type LucideIcon,
+} from "lucide-react";
 
 // Define interfaces for our menu items
 interface MenuItem {
   label: string;
-  icon: Icon;
+  icon: LucideIcon;
   href: string;
   color: string;
   requiredRoles?: UserRole[];
@@ -31,65 +30,65 @@ interface MenuItem {
 
 interface SubMenuItem {
   label: string;
-  icon: Icon;
+  icon: LucideIcon;
   href: string;
   color: string;
 }
 
 const MENU_ITEMS: MenuItem[] = [
   {
-    label: 'Dashboard',
+    label: "Dashboard",
     icon: HomeIcon,
-    href: '/dashboard',
-    color: 'text-sky-500',
+    href: "/admin/dashboard",
+    color: "text-sky-500",
   },
   {
-    label: 'Keys',
+    label: "Keys",
     icon: KeyIcon,
-    href: '/keys',
-    color: 'text-violet-500',
+    href: "/admin/keys",
+    color: "text-violet-500",
   },
   {
-    label: 'Technician Tools',
-    icon: WrenchIcon,
-    href: '/technician',
-    color: 'text-orange-500',
-    requiredRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TECHNICIAN],
+    label: "Users",
+    icon: UsersIcon,
+    href: "/admin/users",
+    color: "text-blue-500",
+    requiredRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
+  },
+  {
+    label: "Inventory",
+    icon: DatabaseIcon,
+    href: "/admin/inventory",
+    color: "text-purple-500",
+    requiredRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
+  },
+  {
+    label: "Transponders",
+    icon: SearchIcon,
+    href: "/admin/transponders",
+    color: "text-orange-500",
+    requiredRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
     subItems: [
       {
-        label: 'Transponder Search',
+        label: "Search",
         icon: SearchIcon,
-        href: '/technician/transponder-search',
-        color: 'text-pink-700',
+        href: "/admin/transponders/search",
+        color: "text-pink-700",
       },
       {
-        label: 'Key Programming',
-        icon: WrenchIcon,
-        href: '/technician/key-programming',
-        color: 'text-green-500',
+        label: "Management",
+        icon: DatabaseIcon,
+        href: "/admin/transponders/manage",
+        color: "text-green-500",
       },
-    ]
+    ],
   },
   {
-    label: 'Users',
-    icon: UsersIcon,
-    href: '/users',
-    color: 'text-blue-500',
-    requiredRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN]
-  },
-  {
-    label: 'Settings',
+    label: "Settings",
     icon: SettingsIcon,
-    href: '/settings',
-    color: 'text-gray-500',
-    requiredRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN]
-  },
-  {
-    label: 'Personal Inventory',
-    icon: DatabaseIcon,
-    href: '/inventory/personal',
-    color: 'text-purple-500',
-    superAdminOnly: true
+    href: "/admin/settings",
+    color: "text-gray-500",
+    requiredRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
   },
 ];
 
@@ -98,10 +97,10 @@ export default function SideMenu() {
   const { data: session, status } = useSession();
 
   // Add console log to debug session
-  console.log('Session:', session);
-  console.log('Status:', status);
+  console.log("Session:", session);
+  console.log("Status:", status);
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="h-full flex flex-col">
         <div className="p-4">
@@ -118,17 +117,18 @@ export default function SideMenu() {
 
   // If no session, show limited menu
   if (!session) {
-    const publicMenuItems = MENU_ITEMS.filter(item => 
-      item.href === '/dashboard' || item.href === '/keys'
+    const publicMenuItems = MENU_ITEMS.filter(
+      (item) => item.href === "/admin/dashboard" || item.href === "/admin/keys"
     );
 
     return (
       <div className="space-y-4 py-4 flex flex-col h-full bg-gray-900 text-white">
         <div className="px-3 py-2 flex-1">
-          <Link href="/dashboard" className="flex items-center pl-3 mb-14">
-            <h1 className="text-2xl font-bold">
-              Key Inventory
-            </h1>
+          <Link
+            href="/admin/dashboard"
+            className="flex items-center pl-3 mb-14"
+          >
+            <h1 className="text-2xl font-bold">Key Inventory</h1>
           </Link>
           <div className="space-y-1">
             {publicMenuItems.map((item) => (
@@ -137,7 +137,9 @@ export default function SideMenu() {
                   href={item.href}
                   className={cn(
                     "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
-                    pathname === item.href ? "text-white bg-white/10" : "text-zinc-400",
+                    pathname === item.href
+                      ? "text-white bg-white/10"
+                      : "text-zinc-400"
                   )}
                 >
                   <div className="flex items-center flex-1">
@@ -157,9 +159,9 @@ export default function SideMenu() {
   const userId = session?.user?.id;
 
   // Filter menu items based on user role and permissions
-  const filteredMenuItems = MENU_ITEMS.filter(item => {
+  const filteredMenuItems = MENU_ITEMS.filter((item) => {
     // Always show Dashboard and Keys
-    if (item.href === '/dashboard' || item.href === '/keys') {
+    if (item.href === "/admin/dashboard" || item.href === "/admin/keys") {
       return true;
     }
 
@@ -177,10 +179,8 @@ export default function SideMenu() {
   return (
     <div className="space-y-4 py-4 flex flex-col h-full bg-gray-900 text-white">
       <div className="px-3 py-2 flex-1">
-        <Link href="/dashboard" className="flex items-center pl-3 mb-14">
-          <h1 className="text-2xl font-bold">
-            Key Inventory
-          </h1>
+        <Link href="/admin/dashboard" className="flex items-center pl-3 mb-14">
+          <h1 className="text-2xl font-bold">Key Inventory</h1>
         </Link>
         <div className="space-y-1">
           {filteredMenuItems.map((item) => (
@@ -189,7 +189,9 @@ export default function SideMenu() {
                 href={item.href}
                 className={cn(
                   "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
-                  pathname === item.href ? "text-white bg-white/10" : "text-zinc-400",
+                  pathname === item.href
+                    ? "text-white bg-white/10"
+                    : "text-zinc-400"
                 )}
               >
                 <div className="flex items-center flex-1">
@@ -197,7 +199,7 @@ export default function SideMenu() {
                   {item.label}
                 </div>
               </Link>
-              
+
               {/* Render sub-items if they exist and parent is active */}
               {item.subItems && pathname.startsWith(item.href) && (
                 <div className="ml-6 mt-2 space-y-1">
@@ -207,11 +209,15 @@ export default function SideMenu() {
                       href={subItem.href}
                       className={cn(
                         "text-sm group flex p-2 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
-                        pathname === subItem.href ? "text-white bg-white/10" : "text-zinc-400",
+                        pathname === subItem.href
+                          ? "text-white bg-white/10"
+                          : "text-zinc-400"
                       )}
                     >
                       <div className="flex items-center flex-1">
-                        <subItem.icon className={cn("h-4 w-4 mr-3", subItem.color)} />
+                        <subItem.icon
+                          className={cn("h-4 w-4 mr-3", subItem.color)}
+                        />
                         {subItem.label}
                       </div>
                     </Link>
@@ -224,4 +230,4 @@ export default function SideMenu() {
       </div>
     </div>
   );
-} 
+}

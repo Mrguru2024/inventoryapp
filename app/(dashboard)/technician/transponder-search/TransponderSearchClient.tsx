@@ -1,17 +1,16 @@
-'use client';
+"use client";
 
-import { Suspense } from 'react';
-import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
-import TransponderSearch from '@/app/components/TransponderSearch';
-import { useTransponderData } from '@/app/hooks/useTransponderData';
-import { ExclamationCircleIcon } from '@heroicons/react/24/outline';
+import { Suspense } from "react";
+import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import TransponderSearch from "@/app/components/TransponderSearch";
+import { ExclamationCircleIcon } from "@heroicons/react/24/outline";
 
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
-      cacheTime: 30 * 60 * 1000, // 30 minutes
+      gcTime: 30 * 60 * 1000, // 30 minutes
     },
   },
 });
@@ -38,16 +37,13 @@ function ErrorState({ error }: { error: Error }) {
 function TransponderSearchWithData() {
   const { data, isLoading, error } = useTransponderData();
 
-  console.log('TransponderSearchWithData:', { data, isLoading, error });
-
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState error={error as Error} />;
   if (!data) {
-    console.log('No data available');
-    return <ErrorState error={new Error('No transponder data available')} />;
+    return <ErrorState error={new Error("No transponder data available")} />;
   }
 
-  return <TransponderSearch data={data} />;
+  return <TransponderSearch transponderData={data} />;
 }
 
 export default function TransponderSearchClient() {
@@ -62,11 +58,11 @@ export default function TransponderSearchClient() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="px-4 py-5 sm:p-6">
             <Suspense fallback={<LoadingState />}>
-              <TransponderSearchWithData />
+              <TransponderSearch />
             </Suspense>
           </div>
         </div>
       </div>
     </QueryClientProvider>
   );
-} 
+}

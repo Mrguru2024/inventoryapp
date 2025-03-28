@@ -1,59 +1,87 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { InventoryItem } from '../types/inventory';
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/app/components/ui/table";
+import { Button } from "@/app/components/ui/button";
+import { EditIcon, TrashIcon } from "lucide-react";
+import Link from "next/link";
 
-interface Props {
-  items: InventoryItem[];
-  onDelete?: (id: number) => void;
-  onEdit?: (item: InventoryItem) => void;
+interface InventoryItem {
+  id: number;
+  sku: string;
+  brand: string;
+  model: string;
+  stockCount: number;
+  lowStockThreshold: number;
 }
 
-const InventoryList: React.FC<Props> = ({ items, onDelete, onEdit }) => {
+export default function InventoryList() {
+  const { data: items = [], isLoading } = useQuery<InventoryItem[]>({
+    queryKey: ["inventory"],
+    queryFn: async () => {
+      const response = await fetch("/api/inventory");
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      return response.json();
+    },
+  });
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="mt-8">
-      <h2 className="text-xl font-semibold mb-4">Inventory Items</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Inventory Items</h2>
+        <Link href="/admin/inventory/new">
+          <Button>Add New Item</Button>
+        </Link>
+      </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>SKU</TableHead>
+              <TableHead>Brand</TableHead>
+              <TableHead>Model</TableHead>
+              <TableHead>Stock Count</TableHead>
+              <TableHead>Low Stock Threshold</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {items.map((item) => (
-              <tr key={item.id}>
-                <td className="px-6 py-4 whitespace-nowrap">{item.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{item.sku}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{item.quantity}</td>
-                <td className="px-6 py-4 whitespace-nowrap">${item.price.toFixed(2)}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{item.location}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => onEdit?.(item)}
-                    className="text-indigo-600 hover:text-indigo-900 mr-4"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => onDelete?.(item.id)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
+              <TableRow key={item.id}>
+                <TableCell>{item.sku}</TableCell>
+                <TableCell>{item.brand}</TableCell>
+                <TableCell>{item.model}</TableCell>
+                <TableCell>{item.stockCount}</TableCell>
+                <TableCell>{item.lowStockThreshold}</TableCell>
+                <TableCell className="space-x-2">
+                  <Link href={`/admin/inventory/${item.id}/edit`}>
+                    <Button className="h-9 px-3 hover:bg-gray-100">
+                      <EditIcon className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Button className="h-9 px-3 text-red-600 hover:bg-red-50">
+                    <TrashIcon className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
-};
-
-export default InventoryList; 
+}

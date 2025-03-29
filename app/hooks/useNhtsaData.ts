@@ -17,6 +17,20 @@ interface NhtsaResponse {
   }>;
 }
 
+interface NhtsaMake {
+  Make_ID: number;
+  Make_Name: string;
+}
+
+interface NhtsaModel {
+  Model_ID: number;
+  Model_Name: string;
+}
+
+interface NhtsaYear {
+  Year: number;
+}
+
 // Fallback data for makes
 const FALLBACK_MAKES = [
   "ACURA",
@@ -226,80 +240,117 @@ const fetchWithFallback = async <T>(
   }
 };
 
-export function useNhtsaData({ make, model }: UseNhtsaDataProps = {}) {
-  const [selectedMake, setSelectedMake] = useState<string | undefined>(make);
-  const [selectedModel, setSelectedModel] = useState<string | undefined>(model);
+export function useNhtsaData() {
+  const [makes, setMakes] = useState<NhtsaMake[]>([]);
+  const [models, setModels] = useState<NhtsaModel[]>([]);
+  const [years, setYears] = useState<NhtsaYear[]>([]);
+  const [selectedMake, setSelectedMake] = useState<string>("");
+  const [selectedModel, setSelectedModel] = useState<string>("");
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch all makes
-  const { data: makes = FALLBACK_MAKES, isLoading: isLoadingMakes } = useQuery({
-    queryKey: ["makes"],
-    queryFn: () =>
-      fetchWithFallback("/api/nhtsa?action=getMakes", FALLBACK_MAKES),
-    staleTime: 1000 * 60 * 60, // 1 hour
-    gcTime: 1000 * 60 * 60 * 24, // 24 hours
-  });
-
-  // Fetch models for selected make
-  const { data: models = [], isLoading: isLoadingModels } = useQuery({
-    queryKey: ["models", selectedMake],
-    queryFn: async () => {
-      if (!selectedMake) return [];
-      try {
-        const response = await fetchWithFallback(
-          `/api/nhtsa?action=getModels&make=${encodeURIComponent(
-            selectedMake
-          )}`,
-          FALLBACK_MODELS[selectedMake] || []
-        );
-        // Ensure we always return an array
-        return Array.isArray(response)
-          ? response
-          : FALLBACK_MODELS[selectedMake] || [];
-      } catch (error) {
-        console.error("Error fetching models:", error);
-        return FALLBACK_MODELS[selectedMake] || [];
-      }
-    },
-    enabled: !!selectedMake,
-    staleTime: 1000 * 60 * 60, // 1 hour
-    gcTime: 1000 * 60 * 60 * 24, // 24 hours
-  });
-
-  // Fetch years for selected make and model
-  const { data: years = FALLBACK_YEARS, isLoading: isLoadingYears } = useQuery({
-    queryKey: ["years", selectedMake, selectedModel],
-    queryFn: () => {
-      if (!selectedMake || !selectedModel) return FALLBACK_YEARS;
-      return fetchWithFallback(
-        `/api/nhtsa?action=getYears&make=${encodeURIComponent(
-          selectedMake
-        )}&model=${encodeURIComponent(selectedModel)}`,
-        FALLBACK_YEARS
-      );
-    },
-    enabled: !!selectedMake && !!selectedModel,
-    staleTime: 1000 * 60 * 60, // 1 hour
-    gcTime: 1000 * 60 * 60 * 24, // 24 hours
-  });
-
-  // Update selected values when props change
+  // Fetch makes
   useEffect(() => {
-    if (make) setSelectedMake(make);
-    if (model) setSelectedModel(model);
-  }, [make, model]);
+    const fetchMakes = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(
+          "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json"
+        );
+        const data = await response.json();
+        if (data.Results) {
+          setMakes(data.Results);
+        } else {
+          // Use fallback data if API fails
+          setMakes(
+            FALLBACK_MAKES.map((make, index) => ({
+              Make_ID: index + 1,
+              Make_Name: make,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error("Error fetching makes:", err);
+        // Use fallback data on error
+        setMakes(
+          FALLBACK_MAKES.map((make, index) => ({
+            Make_ID: index + 1,
+            Make_Name: make,
+          }))
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMakes();
+  }, []);
+
+  // Fetch models when make is selected
+  useEffect(() => {
+    const fetchModels = async () => {
+      if (!selectedMake) {
+        setModels([]);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const response = await fetch(
+          `https://vpic.nhtsa.dot.gov/api/vehicles/getmodelsformake/${encodeURIComponent(
+            selectedMake
+          )}?format=json`
+        );
+        const data = await response.json();
+        if (data.Results) {
+          setModels(data.Results);
+        } else {
+          // Use fallback data if API fails
+          setModels(
+            (FALLBACK_MODELS[selectedMake] || []).map((model, index) => ({
+              Model_ID: index + 1,
+              Model_Name: model,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error("Error fetching models:", err);
+        // Use fallback data on error
+        setModels(
+          (FALLBACK_MODELS[selectedMake] || []).map((model, index) => ({
+            Model_ID: index + 1,
+            Model_Name: model,
+          }))
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchModels();
+  }, [selectedMake]);
+
+  // Generate years (current year to 1995)
+  useEffect(() => {
+    const currentYear = new Date().getFullYear();
+    const yearOptions = Array.from({ length: currentYear - 1994 }, (_, i) => ({
+      Year: currentYear - i,
+    }));
+    setYears(yearOptions);
+  }, []);
 
   return {
-    makes: Array.isArray(makes) ? makes : FALLBACK_MAKES,
-    models: Array.isArray(models)
-      ? models
-      : selectedMake
-      ? FALLBACK_MODELS[selectedMake] || []
-      : [],
-    years: Array.isArray(years) ? years : FALLBACK_YEARS,
+    makes,
+    models,
+    years,
     selectedMake,
     selectedModel,
+    selectedYear,
     setSelectedMake,
     setSelectedModel,
-    isLoading: isLoadingMakes || isLoadingModels || isLoadingYears,
+    setSelectedYear,
+    isLoading,
+    error,
   };
 }

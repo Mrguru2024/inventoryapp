@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { TransponderData } from "@/app/services/transponderService";
 
 // Add cache headers
 export const revalidate = 3600; // Revalidate every hour
@@ -103,23 +104,39 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
-    const { make, model, chipType, compatibleParts, ...rest } = data;
+    const data: Omit<TransponderData, "id"> = await request.json();
 
-    // Ensure make and model are uppercase
-    const transponderData = {
-      ...rest,
-      make: make.toUpperCase(),
-      model: model.toUpperCase(),
-      chipType: JSON.stringify(chipType),
-      compatibleParts: JSON.stringify(compatibleParts),
-    };
+    // Validate required fields
+    if (!data.make || !data.model || !data.yearStart || !data.transponderType) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
 
+    // Create the transponder
     const transponder = await prisma.transponderKey.create({
-      data: transponderData,
+      data: {
+        make: data.make.toUpperCase(),
+        model: data.model.toUpperCase(),
+        yearStart: data.yearStart,
+        yearEnd: data.yearEnd,
+        transponderType: data.transponderType.toUpperCase(),
+        chipType: JSON.stringify(data.chipType || []),
+        compatibleParts: JSON.stringify(data.compatibleParts || []),
+        frequency: data.frequency,
+        notes: data.notes,
+        dualSystem: data.dualSystem,
+      },
     });
 
-    return NextResponse.json(transponder);
+    return NextResponse.json({
+      ...transponder,
+      chipType: transponder.chipType ? JSON.parse(transponder.chipType) : [],
+      compatibleParts: transponder.compatibleParts
+        ? JSON.parse(transponder.compatibleParts)
+        : [],
+    });
   } catch (error) {
     console.error("Error creating transponder:", error);
     return NextResponse.json(

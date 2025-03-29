@@ -13,8 +13,8 @@ interface TransponderKey {
   yearStart: number | null;
   yearEnd: number | null;
   transponderType: string;
-  chipType: string;
-  compatibleParts: string | null;
+  chipType: any;
+  compatibleParts: any;
   frequency: string | null;
   notes: string | null;
   dualSystem: boolean;
@@ -22,81 +22,17 @@ interface TransponderKey {
   updatedAt: Date;
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search")?.toUpperCase() || "";
-    const make = searchParams.get("make")?.toUpperCase() || "";
-    const model = searchParams.get("model")?.toUpperCase() || "";
-    const year = searchParams.get("year");
-    const transponderType = searchParams.get("type") || "";
-
-    const where: Prisma.TransponderKeyWhereInput = {};
-    const conditions: Prisma.TransponderKeyWhereInput[] = [];
-
-    // Handle make filter - ensure exact match
-    if (make) {
-      where.make = make;
-    }
-
-    // Handle model filter - ensure exact match
-    if (model) {
-      where.model = model;
-    }
-
-    // Handle year filter
-    if (year) {
-      const yearNum = parseInt(year);
-      where.OR = [
-        { yearStart: { lte: yearNum }, yearEnd: { gte: yearNum } },
-        { yearStart: { lte: yearNum }, yearEnd: null },
-      ];
-    }
-
-    // Handle transponder type filter
-    if (transponderType) {
-      where.transponderType = transponderType;
-    }
-
-    // Handle search term - only apply if no make is selected
-    if (search && !make) {
-      conditions.push(
-        { make: { contains: search } },
-        { model: { contains: search } },
-        { transponderType: { contains: search } }
-      );
-      where.OR = conditions;
-    }
-
     const transponders = await prisma.transponderKey.findMany({
-      where,
       orderBy: [{ make: "asc" }, { model: "asc" }, { yearStart: "desc" }],
     });
 
-    // Transform the data to match the expected format
-    const transformedData = transponders.map((t) => ({
-      id: t.id.toString(),
-      make: t.make,
-      model: t.model,
-      yearStart: t.yearStart,
-      yearEnd: t.yearEnd,
-      transponderType: t.transponderType,
-      chipType: t.chipType ? JSON.parse(t.chipType) : [],
-      compatibleParts: t.compatibleParts ? JSON.parse(t.compatibleParts) : [],
-      frequency: t.frequency,
-      notes: t.notes,
-      dualSystem: t.dualSystem,
-    }));
-
-    return NextResponse.json(transformedData, {
-      headers: {
-        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=59",
-      },
-    });
+    return NextResponse.json(transponders);
   } catch (error) {
     console.error("Error fetching transponders:", error);
     return NextResponse.json(
-      { error: "Failed to fetch transponder data" },
+      { error: "Failed to fetch transponders" },
       { status: 500 }
     );
   }
@@ -104,57 +40,49 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const data: Omit<TransponderData, "id"> = await request.json();
+    const data = await request.json();
+    const {
+      make,
+      model,
+      yearStart,
+      transponderType,
+      chipType,
+      compatibleParts,
+      frequency,
+      notes,
+      dualSystem,
+    } = data;
 
     // Validate required fields
-    if (!data.make || !data.model || !data.yearStart || !data.transponderType) {
+    if (!make || !model || !yearStart || !transponderType) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Create the transponder
+    // Create new transponder
     const transponder = await prisma.transponderKey.create({
       data: {
-        make: data.make.toUpperCase(),
-        model: data.model.toUpperCase(),
-        yearStart: data.yearStart,
-        yearEnd: data.yearEnd,
-        transponderType: data.transponderType.toUpperCase(),
-        chipType: JSON.stringify(data.chipType || []),
-        compatibleParts: JSON.stringify(data.compatibleParts || []),
-        frequency: data.frequency,
-        notes: data.notes,
-        dualSystem: data.dualSystem,
+        make: make.toUpperCase(),
+        model: model.toUpperCase(),
+        yearStart: Number(yearStart),
+        yearEnd: data.yearEnd ? Number(data.yearEnd) : null,
+        transponderType: transponderType.toUpperCase(),
+        chipType: chipType || [],
+        compatibleParts: compatibleParts || [],
+        frequency: frequency ? frequency.toUpperCase() : "",
+        notes: notes || null,
+        dualSystem: dualSystem || false,
       },
     });
 
-    return NextResponse.json({
-      ...transponder,
-      chipType: transponder.chipType ? JSON.parse(transponder.chipType) : [],
-      compatibleParts: transponder.compatibleParts
-        ? JSON.parse(transponder.compatibleParts)
-        : [],
-    });
+    return NextResponse.json(transponder);
   } catch (error) {
     console.error("Error creating transponder:", error);
     return NextResponse.json(
       { error: "Failed to create transponder" },
       { status: 500 }
     );
-  }
-}
-
-// Helper function to safely parse JSON
-function tryParseJSON<T>(
-  jsonString: string | null | undefined,
-  defaultValue: T
-): T {
-  if (!jsonString) return defaultValue;
-  try {
-    return JSON.parse(jsonString);
-  } catch {
-    return defaultValue;
   }
 }

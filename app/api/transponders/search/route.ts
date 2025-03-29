@@ -20,33 +20,32 @@ interface TransponderData {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get("query") || "";
+    const search = searchParams.get("search");
     const make = searchParams.get("make");
     const model = searchParams.get("model");
     const year = searchParams.get("year");
     const type = searchParams.get("type");
 
-    // Build the where clause
-    const whereClause: Prisma.TransponderKeyWhereInput = {};
+    const whereClause: any = {};
 
-    // Add search query conditions
-    if (query) {
+    if (search) {
       whereClause.OR = [
-        { make: { contains: query.toUpperCase() } },
-        { model: { contains: query.toUpperCase() } },
-        { transponderType: { contains: query.toUpperCase() } },
-        { chipType: { contains: query.toUpperCase() } },
-        { compatibleParts: { contains: query.toUpperCase() } },
+        { make: { contains: search.toUpperCase() } },
+        { model: { contains: search.toUpperCase() } },
+        { transponderType: { contains: search.toUpperCase() } },
+        { chipType: { contains: search.toUpperCase() } },
+        { compatibleParts: { contains: search.toUpperCase() } },
       ];
     }
 
-    // Add filter conditions
     if (make) {
       whereClause.make = { equals: make.toUpperCase() };
     }
+
     if (model) {
       whereClause.model = { equals: model.toUpperCase() };
     }
+
     if (year) {
       const yearNum = parseInt(year);
       whereClause.AND = [
@@ -56,11 +55,11 @@ export async function GET(request: Request) {
         },
       ];
     }
+
     if (type) {
       whereClause.transponderType = { equals: type.toUpperCase() };
     }
 
-    // Fetch transponders with the constructed where clause
     const transponders = await prisma.transponderKey.findMany({
       where: whereClause,
       orderBy: [{ make: "asc" }, { model: "asc" }, { yearStart: "desc" }],
@@ -95,7 +94,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(formattedTransponders);
   } catch (error) {
-    console.error("Search error:", error);
+    console.error("Error searching transponders:", error);
     return NextResponse.json(
       { error: "Failed to search transponders" },
       { status: 500 }

@@ -8,6 +8,7 @@ import type { TransponderData } from "@/app/services/transponderService";
 import { useDebounce } from "@/app/hooks/useDebounce";
 import { useTransponderData } from "@/app/hooks/useTransponderData";
 import { useNhtsaData } from "@/app/hooks/useNhtsaData";
+import Fuse from "fuse.js";
 
 interface TransponderResponse {
   id: string;
@@ -42,6 +43,10 @@ export default function TransponderSearch() {
     setSelectedModel: setNhtsaModel,
     isLoading: isLoadingNhtsa,
   } = useNhtsaData();
+
+  // Add these state variables after the existing useState declarations
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState<TransponderResponse[]>([]);
 
   // Fetch data with filters
   const {
@@ -257,6 +262,38 @@ export default function TransponderSearch() {
     setNhtsaModel(model);
   };
 
+  // Add this function before the return statement
+  const handleSearchInput = useCallback(
+    (value: string) => {
+      setSearchTerm(value);
+      if (value.length >= 2) {
+        const fuse = new Fuse(results, {
+          keys: [
+            { name: "make", weight: 0.4 },
+            { name: "model", weight: 0.3 },
+            { name: "transponderType", weight: 0.2 },
+            { name: "chipType", weight: 0.05 },
+            { name: "compatibleParts", weight: 0.05 },
+          ],
+          threshold: 0.3,
+          includeScore: true,
+          minMatchCharLength: 2,
+        });
+
+        const searchResults = fuse.search(value);
+        const uniqueSuggestions = Array.from(
+          new Set(searchResults.slice(0, 5).map((result) => result.item))
+        );
+        setSuggestions(uniqueSuggestions);
+        setShowSuggestions(true);
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    },
+    [results]
+  );
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -274,14 +311,40 @@ export default function TransponderSearch() {
     <div className="space-y-6">
       {/* Search and filter controls */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <input
-          type="text"
-          placeholder="Search transponders..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
-          aria-label="Search transponders"
-        />
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search transponders..."
+            value={searchTerm}
+            onChange={(e) => handleSearchInput(e.target.value)}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            className="p-2 border rounded dark:bg-gray-800 dark:border-gray-700 w-full"
+            aria-label="Search transponders"
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg">
+              {suggestions.map((suggestion) => (
+                <div
+                  key={suggestion.id}
+                  className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                  onClick={() => {
+                    setSearchTerm(suggestion.make + " " + suggestion.model);
+                    setShowSuggestions(false);
+                    setSuggestions([]);
+                  }}
+                >
+                  <div className="font-medium">
+                    {suggestion.make} {suggestion.model}
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    {suggestion.transponderType}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <select
           id="make"
           value={selectedMake}
@@ -290,9 +353,9 @@ export default function TransponderSearch() {
           aria-label="Select vehicle make"
         >
           <option value="">All Makes</option>
-          {makes.map((make: string) => (
-            <option key={make} value={make}>
-              {make}
+          {makes.map((make) => (
+            <option key={make.Make_ID} value={make.Make_Name}>
+              {make.Make_Name}
             </option>
           ))}
         </select>
@@ -305,24 +368,23 @@ export default function TransponderSearch() {
         >
           <option value="">All Models</option>
           {Array.isArray(models) &&
-            models.map((model: string) => (
-              <option key={model} value={model}>
-                {model}
+            models.map((model) => (
+              <option key={model.Model_ID} value={model.Model_Name}>
+                {model.Model_Name}
               </option>
             ))}
         </select>
         <select
-          id="year"
           value={selectedYear}
           onChange={(e) => setSelectedYear(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          disabled={!selectedModel || isLoadingNhtsa}
+          className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          disabled={isLoading}
           aria-label="Select vehicle year"
         >
           <option value="">All Years</option>
-          {years.map((year: number) => (
-            <option key={year} value={year.toString()}>
-              {year}
+          {years.map((yearObj) => (
+            <option key={yearObj.Year} value={yearObj.Year}>
+              {yearObj.Year}
             </option>
           ))}
         </select>

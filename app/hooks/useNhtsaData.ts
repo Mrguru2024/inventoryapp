@@ -232,52 +232,48 @@ const fetchWithFallback = async <T>(
   fallbackData: T
 ): Promise<T> => {
   try {
-    const response = await axios.get(url);
-    return response.data;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
   } catch (error) {
-    console.error(`Error fetching data from ${url}:`, error);
+    console.error(`Error fetching from ${url}:`, error);
     return fallbackData;
   }
 };
 
-export function useNhtsaData() {
+export function useNhtsaData({ make, model }: UseNhtsaDataProps = {}) {
   const [makes, setMakes] = useState<NhtsaMake[]>([]);
   const [models, setModels] = useState<NhtsaModel[]>([]);
   const [years, setYears] = useState<NhtsaYear[]>([]);
   const [selectedMake, setSelectedMake] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string>("");
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch makes
   useEffect(() => {
     const fetchMakes = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
-        setIsLoading(true);
-        const response = await fetch(
-          "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json"
-        );
-        const data = await response.json();
-        if (data.Results) {
-          setMakes(data.Results);
-        } else {
-          // Use fallback data if API fails
-          setMakes(
-            FALLBACK_MAKES.map((make, index) => ({
-              Make_ID: index + 1,
+        const data = await fetchWithFallback(
+          "/api/nhtsa?endpoint=getallmakes",
+          {
+            Results: FALLBACK_MAKES.map((make) => ({
+              Make_ID: 0,
               Make_Name: make,
-            }))
-          );
-        }
-      } catch (err) {
-        console.error("Error fetching makes:", err);
-        // Use fallback data on error
+            })),
+          }
+        );
+        setMakes(data.Results || []);
+      } catch (error) {
+        console.error("Error fetching makes:", error);
+        setError("Failed to fetch makes");
         setMakes(
-          FALLBACK_MAKES.map((make, index) => ({
-            Make_ID: index + 1,
-            Make_Name: make,
-          }))
+          FALLBACK_MAKES.map((make) => ({ Make_ID: 0, Make_Name: make }))
         );
       } finally {
         setIsLoading(false);
@@ -295,33 +291,30 @@ export function useNhtsaData() {
         return;
       }
 
+      setIsLoading(true);
+      setError(null);
       try {
-        setIsLoading(true);
-        const response = await fetch(
-          `https://vpic.nhtsa.dot.gov/api/vehicles/getmodelsformake/${encodeURIComponent(
+        const data = await fetchWithFallback(
+          `/api/nhtsa?endpoint=getmodelsformake&make=${encodeURIComponent(
             selectedMake
-          )}?format=json`
+          )}`,
+          {
+            Results:
+              FALLBACK_MODELS[selectedMake]?.map((model) => ({
+                Model_ID: 0,
+                Model_Name: model,
+              })) || [],
+          }
         );
-        const data = await response.json();
-        if (data.Results) {
-          setModels(data.Results);
-        } else {
-          // Use fallback data if API fails
-          setModels(
-            (FALLBACK_MODELS[selectedMake] || []).map((model, index) => ({
-              Model_ID: index + 1,
-              Model_Name: model,
-            }))
-          );
-        }
-      } catch (err) {
-        console.error("Error fetching models:", err);
-        // Use fallback data on error
+        setModels(data.Results || []);
+      } catch (error) {
+        console.error("Error fetching models:", error);
+        setError("Failed to fetch models");
         setModels(
-          (FALLBACK_MODELS[selectedMake] || []).map((model, index) => ({
-            Model_ID: index + 1,
+          FALLBACK_MODELS[selectedMake]?.map((model) => ({
+            Model_ID: 0,
             Model_Name: model,
-          }))
+          })) || []
         );
       } finally {
         setIsLoading(false);
@@ -331,7 +324,7 @@ export function useNhtsaData() {
     fetchModels();
   }, [selectedMake]);
 
-  // Generate years (current year to 1995)
+  // Generate years
   useEffect(() => {
     const currentYear = new Date().getFullYear();
     const yearOptions = Array.from({ length: currentYear - 1994 }, (_, i) => ({
@@ -346,10 +339,8 @@ export function useNhtsaData() {
     years,
     selectedMake,
     selectedModel,
-    selectedYear,
     setSelectedMake,
     setSelectedModel,
-    setSelectedYear,
     isLoading,
     error,
   };

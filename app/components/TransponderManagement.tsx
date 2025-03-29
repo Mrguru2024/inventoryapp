@@ -5,14 +5,10 @@ import TransponderIdentifier from "./TransponderIdentifier";
 import TransponderInventoryManager from "./TransponderInventoryManager";
 import ProgrammingGuideGenerator from "./ProgrammingGuideGenerator";
 import {
-  transponderService,
   TransponderKeyData,
   TransponderSearchParams,
 } from "@/app/services/transponderService";
-import {
-  transponderInventoryService,
-  TransponderInventoryItem,
-} from "@/app/services/transponderInventoryService";
+import { TransponderInventoryItem } from "@/app/services/transponderInventoryService";
 import { useToast } from "@/app/components/ui/use-toast";
 import LoadingSpinner from "./LoadingSpinner";
 
@@ -33,44 +29,35 @@ export default function TransponderManagement() {
     setIsLoading(true);
     try {
       // Fetch all transponder data without any filters initially
-      const [transponders, inventory] = await Promise.all([
-        transponderService.searchTransponders({}), // Get all data first
-        transponderInventoryService.getInventoryLevels(),
+      const [transpondersResponse, inventoryResponse] = await Promise.all([
+        fetch("/api/transponders"),
+        fetch("/api/inventory"),
       ]);
 
-      // Transform the data to ensure proper typing
-      const transformedTransponders = transponders.map(
-        (t: TransponderKeyData) => ({
-          ...t,
-          chipType: Array.isArray(t.chipType)
-            ? t.chipType
-            : JSON.parse(t.chipType || "[]"),
-          compatibleParts: Array.isArray(t.compatibleParts)
-            ? t.compatibleParts
-            : JSON.parse(t.compatibleParts || "[]"),
-        })
-      );
+      if (!transpondersResponse.ok || !inventoryResponse.ok) {
+        throw new Error("Failed to fetch data");
+      }
+
+      const [transponders, inventory] = await Promise.all([
+        transpondersResponse.json(),
+        inventoryResponse.json(),
+      ]);
 
       // Store all data
-      setTransponderData(transformedTransponders);
+      setTransponderData(transponders);
       setInventoryLevels(inventory);
 
       // Log the data for debugging
-      console.log("Loaded transponders:", transformedTransponders.length);
+      console.log("Loaded transponders:", transponders.length);
       console.log(
         "Unique makes:",
-        Array.from(
-          new Set(
-            transformedTransponders.map((t: TransponderKeyData) => t.make)
-          )
-        ).length
+        Array.from(new Set(transponders.map((t: TransponderKeyData) => t.make)))
+          .length
       );
       console.log(
         "Unique models:",
         Array.from(
-          new Set(
-            transformedTransponders.map((t: TransponderKeyData) => t.model)
-          )
+          new Set(transponders.map((t: TransponderKeyData) => t.model))
         ).length
       );
     } catch (error) {
@@ -83,7 +70,7 @@ export default function TransponderManagement() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]); // Remove searchParams from dependencies
+  }, [toast]);
 
   useEffect(() => {
     loadData();
@@ -160,7 +147,18 @@ export default function TransponderManagement() {
 
   const handleUpdateStock = async (id: string, quantity: number) => {
     try {
-      await transponderInventoryService.updateStock(parseInt(id, 10), quantity);
+      const response = await fetch(`/api/inventory/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ quantity }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update stock");
+      }
+
       await loadData(); // Refresh data
       toast({
         title: "Success",
@@ -178,7 +176,18 @@ export default function TransponderManagement() {
 
   const handleOrderStock = async (item: TransponderInventoryItem) => {
     try {
-      await transponderInventoryService.orderStock(item);
+      const response = await fetch(`/api/inventory/${item.id}/order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(item),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to place order");
+      }
+
       await loadData(); // Refresh data
       toast({
         title: "Success",

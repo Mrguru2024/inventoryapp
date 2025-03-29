@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { tryParseJSON } from "@/lib/utils";
 
 export async function GET() {
   try {
@@ -14,8 +15,21 @@ export async function GET() {
       },
     });
 
-    // Return empty array if no inventory found
-    return NextResponse.json(inventory || []);
+    // Transform the data to ensure proper JSON handling
+    const transformedInventory = inventory.map((item) => ({
+      ...item,
+      transponderKey: {
+        ...item.transponderKey,
+        chipType: item.transponderKey.chipType
+          ? tryParseJSON(item.transponderKey.chipType)
+          : [],
+        compatibleParts: item.transponderKey.compatibleParts
+          ? tryParseJSON(item.transponderKey.compatibleParts)
+          : [],
+      },
+    }));
+
+    return NextResponse.json(transformedInventory);
   } catch (error) {
     console.error("Error fetching inventory:", error);
     return NextResponse.json(

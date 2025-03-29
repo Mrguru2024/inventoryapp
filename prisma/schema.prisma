@@ -61,8 +61,8 @@ model TransponderKey {
   yearStart       Int?
   yearEnd         Int?
   transponderType String
-  chipType        String    // Stored as JSON string
-  compatibleParts String?   // Stored as JSON string
+  chipType        Json      // Stored as JSON
+  compatibleParts Json?     // Stored as JSON
   frequency       String?
   notes           String?   @db.Text
   dualSystem      Boolean   @default(false)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   transponderService,
@@ -9,6 +9,7 @@ import {
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { toast } from "react-hot-toast";
 import AddTransponderModal from "@/app/components/AddTransponderModal";
+import Fuse from "fuse.js";
 
 export default function ManageTransponders() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -38,11 +39,29 @@ export default function ManageTransponders() {
     }
   };
 
-  const filteredTransponders = transponders.filter((transponder) =>
-    Object.values(transponder).some((value) =>
-      String(value).toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+  // Create a Fuse instance for fuzzy search
+  const fuse = useMemo(() => {
+    return new Fuse(transponders, {
+      keys: [
+        { name: "make", weight: 0.4 },
+        { name: "model", weight: 0.3 },
+        { name: "transponderType", weight: 0.2 },
+        { name: "chipType", weight: 0.05 },
+        { name: "compatibleParts", weight: 0.05 },
+      ],
+      threshold: 0.3,
+      includeScore: true,
+      minMatchCharLength: 2,
+    });
+  }, [transponders]);
+
+  // Filter transponders based on search term
+  const filteredTransponders = useMemo(() => {
+    if (!searchTerm) return transponders;
+
+    const searchResults = fuse.search(searchTerm);
+    return searchResults.map((result) => result.item);
+  }, [searchTerm, fuse, transponders]);
 
   if (isLoading) {
     return (

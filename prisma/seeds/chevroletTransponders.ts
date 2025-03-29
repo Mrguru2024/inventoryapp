@@ -1,78 +1,58 @@
-const chevroletTransponderData = [
+import { TransponderData } from "@/app/services/transponderService";
+
+export const chevroletTransponderData: TransponderData[] = [
   {
-    make: "CHEVROLET",
-    model: "AGILE",
-    yearStart: 2009,
-    transponderType: "Philips Crypto 2",
-    chipType: ["Hitag2", "ID46", "PCF7936AS", "JMA TP12GM", "SILCA T14", "CN3", "XT27", "K-JMD"],
-    notes: "PCF7936AS compatible"
-  },
-  {
-    make: "CHEVROLET",
-    model: "ASTRA",
-    yearStart: 2000,
-    yearEnd: 2007,
-    transponderType: "Philips Crypto ID40",
-    chipType: ["ID40", "PCF7935"],
-    notes: "Precoded"
-  },
-  {
-    make: "CHEVROLET",
-    model: "ASTRA",
-    yearStart: 2007,
-    transponderType: "Philips Crypto 2",
-    chipType: ["Hitag2", "ID46", "PCF7936AS", "JMA TP12GM", "SILCA T14", "CN3", "XT27", "K-JMD"]
-  },
-  {
-    make: "CHEVROLET",
-    model: "ASTRO VAN",
-    yearStart: 1998,
-    yearEnd: 2005,
-    transponderType: "PassLock",
-    chipType: ["PassLock Anti Theft System"],
-    notes: "PassLock Anti Theft System"
-  },
-  // Continue with more models...
-  {
+    id: "CHEVROLET-SILVERADO-2007-2013",
     make: "CHEVROLET",
     model: "SILVERADO",
-    yearStart: 2021,
-    transponderType: "Hitag Pro",
-    chipType: ["NCF2951V", "NCF2952V"],
-    compatibleParts: ["YG0G21TB2", "13548437"],
-    notes: "Latest generation transponder system"
+    yearStart: 2007,
+    yearEnd: 2013,
+    transponderType: "PK3+",
+    chipType: JSON.stringify(["ID46", "PCF7936"]),
+    compatibleParts: JSON.stringify(["13500219", "13500220"]),
+    frequency: "315 MHz",
+    notes: "First generation transponder system",
+    dualSystem: false,
   },
   {
+    id: "CHEVROLET-CRUZE-2011-2015",
     make: "CHEVROLET",
-    model: "VOLT",
+    model: "CRUZE",
+    yearStart: 2011,
+    yearEnd: 2015,
+    transponderType: "PK3+",
+    chipType: JSON.stringify(["ID46", "PCF7936"]),
+    compatibleParts: JSON.stringify(["13504749", "13504750"]),
+    frequency: "315 MHz",
+    notes: "Mid-generation system",
+    dualSystem: false,
+  },
+  {
+    id: "CHEVROLET-MALIBU-2016-2019",
+    make: "CHEVROLET",
+    model: "MALIBU",
     yearStart: 2016,
     yearEnd: 2019,
-    transponderType: "Hitag 2 Extended",
-    chipType: ["ID46E", "PCF7937E", "PCF7952E"],
-    compatibleParts: ["HYQ4EA 13529638", "13598815", "13585728"]
+    transponderType: "HITAG 3",
+    chipType: JSON.stringify(["ID47", "PCF7953"]),
+    compatibleParts: JSON.stringify(["13508771", "13508772"]),
+    frequency: "433.92 MHz",
+    notes: "Latest generation system",
+    dualSystem: false,
   },
   {
-    make: "CHEVROLET",
-    model: "CORVETTE",
-    yearStart: 1986,
-    yearEnd: 2004,
-    transponderType: "VATS",
-    chipType: ["VATS Resistor"],
-    vatsEnabled: true,
-    vatsSystem: "VATS",
-    notes: "First GM vehicle to use VATS system. Uses resistor values 2-15 (value 1 discontinued in 1989)"
-  },
-  {
+    id: "CHEVROLET-CAMARO-2020",
     make: "CHEVROLET",
     model: "CAMARO",
-    yearStart: 1988,
-    yearEnd: 2002,
-    transponderType: "VATS",
-    chipType: ["VATS Resistor"],
-    vatsEnabled: true,
-    vatsSystem: "VATS",
-    notes: "Uses resistor values 2-15"
-  }
+    yearStart: 2020,
+    yearEnd: null,
+    transponderType: "HITAG AES",
+    chipType: JSON.stringify(["ID49", "PCF7953M"]),
+    compatibleParts: JSON.stringify(["13529841", "13529842"]),
+    frequency: "433.92 MHz",
+    notes: "Smart key system",
+    dualSystem: false,
+  },
 ];
 
-module.exports = { chevroletTransponderData }; 
+module.exports = { chevroletTransponderData };

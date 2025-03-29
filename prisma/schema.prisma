@@ -54,6 +54,39 @@ model Notification {
   createdAt DateTime @default(now())
 }
 
+model TransponderKey {
+  id              Int       @id @default(autoincrement())
+  make            String
+  model           String
+  yearStart       Int?
+  yearEnd         Int?
+  transponderType String
+  chipType        String    // Stored as JSON string
+  compatibleParts String?   // Stored as JSON string
+  frequency       String?
+  notes           String?   @db.Text
+  dualSystem      Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  inventory       TransponderInventory?
+
+  @@index([make, model])
+}
+
+model TransponderInventory {
+  id              Int            @id @default(autoincrement())
+  transponderKey  TransponderKey @relation(fields: [transponderKeyId], references: [id])
+  transponderKeyId Int           @unique
+  quantity        Int            @default(0)
+  minimumStock    Int            @default(5)
+  location        String
+  supplier        String
+  lastOrdered     DateTime?
+  notes           String?        @db.Text
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
 enum Role {
   ADMIN
   TECHNICIAN

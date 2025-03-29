@@ -2,15 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import KeysTable from "@/app/components/KeysTable";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
+import { QueryClientWrapper } from "@/app/components/QueryClientWrapper";
 
 export default async function KeysPage() {
   const session = await getServerSession(authOptions);
@@ -36,9 +28,9 @@ export default async function KeysPage() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <QueryClientProvider client={queryClient}>
+        <QueryClientWrapper>
           <KeysTable />
-        </QueryClientProvider>
+        </QueryClientWrapper>
       </div>
     </div>
   );

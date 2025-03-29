@@ -1,48 +1,48 @@
-import axios from 'axios';
+import axios from "axios";
 
-const NHTSA_BASE_URL = 'https://vpic.nhtsa.dot.gov/api/vehicles';
+const NHTSA_BASE_URL = "https://vpic.nhtsa.dot.gov/api/vehicles";
 
 // Define relevant automotive manufacturers
 const RELEVANT_MAKES = new Set([
-  'ACURA',
-  'AUDI',
-  'BMW',
-  'BUICK',
-  'CADILLAC',
-  'CHEVROLET',
-  'CHRYSLER',
-  'DODGE',
-  'FIAT',
-  'FORD',
-  'GENESIS',
-  'GMC',
-  'HONDA',
-  'HYUNDAI',
-  'INFINITI',
-  'JAGUAR',
-  'JEEP',
-  'KIA',
-  'LAND ROVER',
-  'LEXUS',
-  'LINCOLN',
-  'MAZDA',
-  'MERCEDES-BENZ',
-  'MINI',
-  'MITSUBISHI',
-  'NISSAN',
-  'PORSCHE',
-  'RAM',
-  'SUBARU',
-  'TESLA',
-  'TOYOTA',
-  'VOLKSWAGEN',
-  'VOLVO'
+  "ACURA",
+  "AUDI",
+  "BMW",
+  "BUICK",
+  "CADILLAC",
+  "CHEVROLET",
+  "CHRYSLER",
+  "DODGE",
+  "FIAT",
+  "FORD",
+  "GENESIS",
+  "GMC",
+  "HONDA",
+  "HYUNDAI",
+  "INFINITI",
+  "JAGUAR",
+  "JEEP",
+  "KIA",
+  "LAND ROVER",
+  "LEXUS",
+  "LINCOLN",
+  "MAZDA",
+  "MERCEDES-BENZ",
+  "MINI",
+  "MITSUBISHI",
+  "NISSAN",
+  "PORSCHE",
+  "RAM",
+  "SUBARU",
+  "TESLA",
+  "TOYOTA",
+  "VOLKSWAGEN",
+  "VOLVO",
 ]);
 
 // Name normalization mapping
 const MAKE_NAME_MAPPING: { [key: string]: string } = {
-  'MERCEDES-BENZ': 'Mercedes-Benz',
-  'LAND ROVER': 'Land Rover',
+  "MERCEDES-BENZ": "Mercedes-Benz",
+  "LAND ROVER": "Land Rover",
   // Add any other name normalizations here
 };
 
@@ -65,91 +65,125 @@ export interface VehicleModel {
   Make_Name: string;
 }
 
-export const vehicleService = {
+export interface Make {
+  MakeId: number;
+  MakeName: string;
+}
+
+export interface Model {
+  ModelId: number;
+  ModelName: string;
+}
+
+export interface Year {
+  Year: number;
+}
+
+export interface VehicleData {
+  make: string;
+  model: string;
+  year: number;
+}
+
+class VehicleService {
+  private baseUrl: string;
+
+  constructor() {
+    this.baseUrl = NHTSA_BASE_URL;
+  }
+
   normalizeMakeName(make: string): string {
-    return MAKE_NAME_MAPPING[make.toUpperCase()] || 
-           make.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
-  },
+    return (
+      MAKE_NAME_MAPPING[make.toUpperCase()] ||
+      make
+        .split(" ")
+        .map(
+          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        )
+        .join(" ")
+    );
+  }
 
   isRelevantMake(make: string): boolean {
     return RELEVANT_MAKES.has(make.toUpperCase());
-  },
+  }
 
   async testApiConnection(): Promise<boolean> {
     try {
       const response = await axios.get<VehicleApiResponse>(
-        `${NHTSA_BASE_URL}/GetAllMakes?format=json`
+        `${this.baseUrl}/GetAllMakes?format=json`
       );
       return response.status === 200 && Array.isArray(response.data.Results);
     } catch (error) {
-      console.error('API Connection Test Failed:', error);
+      console.error("API Connection Test Failed:", error);
       return false;
     }
-  },
+  }
 
-  async getAllMakes(): Promise<string[]> {
+  async getAllMakes(): Promise<Make[]> {
     try {
-      const response = await axios.get<VehicleApiResponse>(
-        `${NHTSA_BASE_URL}/GetAllMakes?format=json`
-      );
-      
-      if (!response.data.Results?.length) {
-        throw new Error('No makes data received from API');
+      const response = await fetch(`${this.baseUrl}/getallmakes?format=json`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      const makes = response.data.Results
-        .map((make: VehicleMake) => make.Make_Name)
-        .filter(make => this.isRelevantMake(make))
-        .map(make => this.normalizeMakeName(make))
-        .sort();
-
-      console.log(`Successfully fetched ${makes.length} relevant makes`);
-      return makes;
+      const data = await response.json();
+      return data.Results;
     } catch (error) {
-      console.error('Error fetching makes:', error);
-      throw new Error('Failed to fetch vehicle makes');
+      console.error("Error fetching makes:", error);
+      throw error;
     }
-  },
+  }
 
-  async getModelsForMakeYear(make: string, year: string): Promise<string[]> {
+  async getModelsForMake(make: string): Promise<Model[]> {
     try {
-      if (!make || !year) {
-        throw new Error('Make and year are required');
-      }
-
-      const response = await axios.get<VehicleApiResponse>(
-        `${NHTSA_BASE_URL}/GetModelsForMakeYear/make/${encodeURIComponent(make)}/modelyear/${year}?format=json`
+      const response = await fetch(
+        `${this.baseUrl}/getmodelsformake/${encodeURIComponent(
+          make
+        )}?format=json`
       );
-
-      if (!response.data.Results?.length) {
-        console.log(`No models found for ${make} ${year}`);
-        return [];
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      const models = response.data.Results
-        .map((model: VehicleModel) => model.Model_Name)
-        .filter(Boolean)
-        .map(model => model.split(' ').map(word => 
-          word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-        ).join(' '))
-        .sort();
-
-      console.log(`Successfully fetched ${models.length} models for ${make} ${year}`);
-      return models;
+      const data = await response.json();
+      return data.Results;
     } catch (error) {
-      console.error(`Error fetching models for ${make} ${year}:`, error);
-      throw new Error(`Failed to fetch models for ${make} ${year}`);
+      console.error("Error fetching models:", error);
+      throw error;
     }
-  },
+  }
 
-  async validateVehicle(make: string, model: string, year: string): Promise<boolean> {
+  async getYearsForModel(make: string, model: string): Promise<Year[]> {
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/getmodelyearinterval/${encodeURIComponent(
+          make
+        )}/${encodeURIComponent(model)}?format=json`
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data.Results;
+    } catch (error) {
+      console.error("Error fetching years:", error);
+      throw error;
+    }
+  }
+
+  async validateVehicle(
+    make: string,
+    model: string,
+    year: string
+  ): Promise<boolean> {
     try {
       if (!make || !model || !year || !this.isRelevantMake(make)) {
         return false;
       }
 
       const response = await axios.get<VehicleApiResponse>(
-        `${NHTSA_BASE_URL}/GetModelsForMakeYear/make/${encodeURIComponent(make)}/modelyear/${year}?format=json`
+        `${this.baseUrl}/GetModelsForMakeYear/make/${encodeURIComponent(
+          make
+        )}/modelyear/${year}?format=json`
       );
 
       const normalizedModel = model.toLowerCase();
@@ -157,11 +191,15 @@ export const vehicleService = {
         (m: VehicleModel) => m.Model_Name.toLowerCase() === normalizedModel
       );
 
-      console.log(`Vehicle validation result for ${year} ${make} ${model}: ${isValid}`);
+      console.log(
+        `Vehicle validation result for ${year} ${make} ${model}: ${isValid}`
+      );
       return isValid;
     } catch (error) {
-      console.error('Error validating vehicle:', error);
+      console.error("Error validating vehicle:", error);
       return false;
     }
   }
-}; 
+}
+
+export const vehicleService = new VehicleService();

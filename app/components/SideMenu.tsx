@@ -23,7 +23,7 @@ interface MenuItem {
   icon: LucideIcon;
   href: string;
   color: string;
-  requiredRoles?: UserRole[];
+  requiredRole?: UserRole;
   superAdminOnly?: boolean;
   subItems?: SubMenuItem[];
 }
@@ -35,45 +35,25 @@ interface SubMenuItem {
   color: string;
 }
 
-const MENU_ITEMS: MenuItem[] = [
+// Define menu items
+const menuItems: MenuItem[] = [
   {
     label: "Dashboard",
     icon: HomeIcon,
-    href: "/admin/dashboard",
-    color: "text-sky-500",
-  },
-  {
-    label: "Keys",
-    icon: KeyIcon,
-    href: "/admin/keys",
-    color: "text-violet-500",
-  },
-  {
-    label: "Users",
-    icon: UsersIcon,
-    href: "/admin/users",
+    href: "/admin",
     color: "text-blue-500",
-    requiredRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
-  },
-  {
-    label: "Inventory",
-    icon: DatabaseIcon,
-    href: "/admin/inventory",
-    color: "text-purple-500",
-    requiredRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
   },
   {
     label: "Transponders",
-    icon: SearchIcon,
+    icon: KeyIcon,
     href: "/admin/transponders",
-    color: "text-orange-500",
-    requiredRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
+    color: "text-green-500",
     subItems: [
       {
         label: "Search",
         icon: SearchIcon,
         href: "/admin/transponders/search",
-        color: "text-pink-700",
+        color: "text-green-500",
       },
       {
         label: "Management",
@@ -84,11 +64,18 @@ const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
+    label: "Users",
+    icon: UsersIcon,
+    href: "/admin/users",
+    color: "text-purple-500",
+    requiredRole: UserRole.ADMIN,
+  },
+  {
     label: "Settings",
     icon: SettingsIcon,
     href: "/admin/settings",
     color: "text-gray-500",
-    requiredRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
+    superAdminOnly: true,
   },
 ];
 
@@ -96,138 +83,64 @@ export default function SideMenu() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
 
-  // Add console log to debug session
-  console.log("Session:", session);
-  console.log("Status:", status);
-
   if (status === "loading") {
     return (
-      <div className="h-full flex flex-col">
-        <div className="p-4">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-            Key Inventory
-          </h2>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <LoadingSpinner />
-        </div>
+      <div className="flex items-center justify-center h-full">
+        <LoadingSpinner />
       </div>
     );
   }
 
-  // If no session, show limited menu
-  if (!session) {
-    const publicMenuItems = MENU_ITEMS.filter(
-      (item) => item.href === "/admin/dashboard" || item.href === "/admin/keys"
-    );
-
-    return (
-      <div className="space-y-4 py-4 flex flex-col h-full bg-gray-900 text-white">
-        <div className="px-3 py-2 flex-1">
-          <Link
-            href="/admin/dashboard"
-            className="flex items-center pl-3 mb-14"
-          >
-            <h1 className="text-2xl font-bold">Key Inventory</h1>
-          </Link>
-          <div className="space-y-1">
-            {publicMenuItems.map((item) => (
-              <div key={item.href}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
-                    pathname === item.href
-                      ? "text-white bg-white/10"
-                      : "text-zinc-400"
-                  )}
-                >
-                  <div className="flex items-center flex-1">
-                    <item.icon className={cn("h-5 w-5 mr-3", item.color)} />
-                    {item.label}
-                  </div>
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+  if (status === "unauthenticated" || !session?.user) {
+    return null;
   }
 
-  const userRole = session?.user?.role as UserRole;
-  const userId = session?.user?.id;
+  const userRole = session.user.role as UserRole;
+  const isAdmin = isSuperAdmin(userRole);
 
-  // Filter menu items based on user role and permissions
-  const filteredMenuItems = MENU_ITEMS.filter((item) => {
-    // Always show Dashboard and Keys
-    if (item.href === "/admin/dashboard" || item.href === "/admin/keys") {
-      return true;
-    }
-
-    if (item.superAdminOnly && !isSuperAdmin(userId)) {
-      return false;
-    }
-
-    if (item.requiredRoles && !item.requiredRoles.includes(userRole)) {
-      return false;
-    }
-
-    return hasPermission(userRole, item.href);
+  const filteredMenuItems = menuItems.filter((item) => {
+    if (item.superAdminOnly && !isAdmin) return false;
+    if (item.requiredRole && userRole !== item.requiredRole) return false;
+    return true;
   });
 
   return (
-    <div className="space-y-4 py-4 flex flex-col h-full bg-gray-900 text-white">
-      <div className="px-3 py-2 flex-1">
-        <Link href="/admin/dashboard" className="flex items-center pl-3 mb-14">
-          <h1 className="text-2xl font-bold">Key Inventory</h1>
-        </Link>
-        <div className="space-y-1">
-          {filteredMenuItems.map((item) => (
-            <div key={item.href}>
-              <Link
-                href={item.href}
-                className={cn(
-                  "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
-                  pathname === item.href
-                    ? "text-white bg-white/10"
-                    : "text-zinc-400"
-                )}
-              >
-                <div className="flex items-center flex-1">
-                  <item.icon className={cn("h-5 w-5 mr-3", item.color)} />
-                  {item.label}
-                </div>
-              </Link>
-
-              {/* Render sub-items if they exist and parent is active */}
-              {item.subItems && pathname.startsWith(item.href) && (
-                <div className="ml-6 mt-2 space-y-1">
-                  {item.subItems.map((subItem) => (
-                    <Link
-                      key={subItem.href}
-                      href={subItem.href}
-                      className={cn(
-                        "text-sm group flex p-2 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
-                        pathname === subItem.href
-                          ? "text-white bg-white/10"
-                          : "text-zinc-400"
-                      )}
-                    >
-                      <div className="flex items-center flex-1">
-                        <subItem.icon
-                          className={cn("h-4 w-4 mr-3", subItem.color)}
-                        />
-                        {subItem.label}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
+    <nav className="space-y-1">
+      {filteredMenuItems.map((item) => (
+        <div key={item.href}>
+          <Link
+            href={item.href}
+            className={cn(
+              "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+              pathname === item.href
+                ? "bg-gray-100 dark:bg-gray-800"
+                : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+            )}
+          >
+            <item.icon className={cn("mr-3 h-5 w-5", item.color)} />
+            {item.label}
+          </Link>
+          {item.subItems && pathname.startsWith(item.href) && (
+            <div className="ml-4 mt-1 space-y-1">
+              {item.subItems.map((subItem) => (
+                <Link
+                  key={subItem.href}
+                  href={subItem.href}
+                  className={cn(
+                    "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+                    pathname === subItem.href
+                      ? "bg-gray-100 dark:bg-gray-800"
+                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  )}
+                >
+                  <subItem.icon className={cn("mr-3 h-5 w-5", subItem.color)} />
+                  {subItem.label}
+                </Link>
+              ))}
             </div>
-          ))}
+          )}
         </div>
-      </div>
-    </div>
+      ))}
+    </nav>
   );
 }

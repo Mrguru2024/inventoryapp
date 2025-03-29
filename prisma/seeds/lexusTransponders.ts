@@ -1,85 +1,129 @@
-import { TransponderKeyData } from '@/app/services/transponderService';
+import { TransponderData } from "@/app/services/transponderService";
 
-const lexusTransponderData: TransponderKeyData[] = [
-  // Modern AES Systems (2013+)
+export const lexusTransponderData: TransponderData[] = [
   {
+    id: "LEXUS-ES350-2013",
     make: "LEXUS",
     model: "ES 350",
     yearStart: 2013,
+    yearEnd: null,
     transponderType: "Texas Crypto DST AES",
-    chipType: ["DST AES 128-bit"],
-    compatibleParts: ["HYQ14FBA", "89904-30A30", "89904-30A31", "89904-30A90"],
-    notes: "Latest generation transponder system"
+    chipType: JSON.stringify(["DST AES 128-bit"]),
+    compatibleParts: JSON.stringify([
+      "HYQ14FBA",
+      "89904-30A30",
+      "89904-30A31",
+      "89904-30A90",
+    ]),
+    frequency: "433.92 MHz",
+    notes: "Latest generation transponder system",
+    dualSystem: false,
   },
-  
-  // Legacy 4C Systems (1997-2003)
   {
+    id: "LEXUS-GS300-1998",
     make: "LEXUS",
     model: "GS 300",
     yearStart: 1998,
     yearEnd: 2005,
     transponderType: "Texas 4C",
-    chipType: ["ID 4C", "JMA TPX1", "TP07", "CN1", "K-JMD", "Errebi TX1"],
-    notes: "First generation transponder system"
+    chipType: JSON.stringify([
+      "ID 4C",
+      "JMA TPX1",
+      "TP07",
+      "CN1",
+      "K-JMD",
+      "Errebi TX1",
+    ]),
+    compatibleParts: JSON.stringify([]),
+    frequency: "125 kHz",
+    notes: "First generation transponder system",
+    dualSystem: false,
   },
-  
-  // 4D Crypto Systems (2002-2012)
   {
+    id: "LEXUS-GS430-2005",
     make: "LEXUS",
     model: "GS 430",
     yearStart: 2005,
     yearEnd: 2007,
     transponderType: "Texas Crypto 4D",
-    chipType: ["4D68", "JMA TPX2", "TP29", "YS-01", "K-JMD", "Errebi TX2"],
-    compatibleParts: ["HYQ14AAB", "271451-0140", "2714510140", "89904-30270"]
+    chipType: JSON.stringify([
+      "4D68",
+      "JMA TPX2",
+      "TP29",
+      "YS-01",
+      "K-JMD",
+      "Errebi TX2",
+    ]),
+    compatibleParts: JSON.stringify([
+      "HYQ14AAB",
+      "271451-0140",
+      "2714510140",
+      "89904-30270",
+    ]),
+    frequency: "315 MHz",
+    notes: "Mid-generation system",
+    dualSystem: false,
   },
-  
-  // Hybrid Models (Special Systems)
   {
+    id: "LEXUS-RX450H-2015",
     make: "LEXUS",
     model: "RX 450H",
     yearStart: 2015,
     yearEnd: 2022,
     transponderType: "Texas Crypto DST AES",
-    chipType: ["DST AES 128-bit"],
-    compatibleParts: ["HYQ14FLB", "89904-0E180", "HYQ14FBB", "89904-0E160"],
-    notes: "Hybrid vehicle system"
+    chipType: JSON.stringify(["DST AES 128-bit"]),
+    compatibleParts: JSON.stringify([
+      "HYQ14FLB",
+      "89904-0E180",
+      "HYQ14FBB",
+      "89904-0E160",
+    ]),
+    frequency: "433.92 MHz",
+    notes: "Hybrid vehicle system",
+    dualSystem: false,
   },
-  
-  // F-Sport Models
   {
+    id: "LEXUS-ISF-2007",
     make: "LEXUS",
     model: "IS-F",
     yearStart: 2007,
     yearEnd: 2012,
     transponderType: "Texas Crypto 4D",
-    chipType: ["4D67", "4D68"],
-    compatibleParts: ["HYQ14AEM", "HYQ14AAB", "89904-50380"],
-    notes: "GNE Board: 6601"
+    chipType: JSON.stringify(["4D67", "4D68"]),
+    compatibleParts: JSON.stringify(["HYQ14AEM", "HYQ14AAB", "89904-50380"]),
+    frequency: "315 MHz",
+    notes: "GNE Board: 6601",
+    dualSystem: false,
   },
-  
-  // Latest Generation (2018+)
   {
+    id: "LEXUS-LS500-2018",
     make: "LEXUS",
     model: "LS 500",
     yearStart: 2018,
     yearEnd: 2021,
     transponderType: "Texas Crypto DST AES",
-    chipType: ["DST AES 128-bit"],
-    compatibleParts: ["HYQ14FBF", "8990H-50020", "8990H-33020"],
-    notes: "Latest flagship model system"
+    chipType: JSON.stringify(["DST AES 128-bit"]),
+    compatibleParts: JSON.stringify(["HYQ14FBF", "8990H-50020", "8990H-33020"]),
+    frequency: "433.92 MHz",
+    notes: "Latest flagship model system",
+    dualSystem: false,
   },
-  
-  // Crossover/SUV Models
   {
+    id: "LEXUS-NX300-2015",
     make: "LEXUS",
     model: "NX 300",
     yearStart: 2015,
     yearEnd: 2021,
     transponderType: "Texas Crypto DST AES",
-    chipType: ["DST AES 128-bit"],
-    compatibleParts: ["HYQ14FBA", "89904-78460", "89904-78450", "89904-53512"]
-  }
+    chipType: JSON.stringify(["DST AES 128-bit"]),
+    compatibleParts: JSON.stringify([
+      "HYQ14FBA",
+      "89904-78460",
+      "89904-78450",
+      "89904-53512",
+    ]),
+    frequency: "433.92 MHz",
+    notes: "Crossover/SUV system",
+    dualSystem: false,
+  },
 ];
-
-module.exports = { lexusTransponderData }; 

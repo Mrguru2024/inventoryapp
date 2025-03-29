@@ -1,51 +1,56 @@
-const acuraTransponderData = [
-  // Legacy Megamos Systems (1996-2006)
+import { TransponderData } from "@/app/services/transponderService";
+
+export const acuraTransponderData: TransponderData[] = [
   {
-    id: "ACURA-CL-1998",
-    make: "ACURA",
-    model: "CL",
-    yearStart: 1998,
-    yearEnd: 2003,
-    transponderType: "Megamos 13",
-    chipType: ["ID13", "Silca 13", "JMA TP05"],
-    notes: "First generation transponder system"
-  },
-  
-  // Hitag2 Systems (2004-2014)
-  {
-    id: "ACURA-TL-2009",
+    id: "ACURA-TL-2004-2008",
     make: "ACURA",
     model: "TL",
-    yearStart: 2009,
-    yearEnd: 2014,
-    transponderType: "Philips Crypto 2",
-    chipType: ["Hitag2", "ID46", "PCF7953"],
-    compatibleParts: ["72147-TK4-A71", "M3N5WY8145"],
-    notes: "Mid-generation system"
-  },
-  
-  // Modern Hitag3 Systems (2015+)
-  {
-    id: "ACURA-TLX-2015",
-    make: "ACURA",
-    model: "TLX",
-    yearStart: 2015,
-    yearEnd: 2021,
-    transponderType: "Philips Crypto 3",
-    chipType: ["Hitag3", "ID47", "PCF7961X", "NCF2952X"],
-    compatibleParts: ["72147TZ3A22", "KR5V2X", "72147-TZ3-A81"],
-    notes: "Latest generation system"
+    yearStart: 2004,
+    yearEnd: 2008,
+    transponderType: "Honda G",
+    chipType: JSON.stringify(["G8D", "ID46", "PCF7936"]),
+    compatibleParts: JSON.stringify(["35111-SEP-307", "35111-SEP-A01"]),
+    frequency: "315 MHz",
+    notes: "First generation transponder system",
+    dualSystem: false,
   },
   {
-    id: "ACURA-MDX-2001",
+    id: "ACURA-MDX-2007-2013",
     make: "ACURA",
     model: "MDX",
-    yearStart: 2001,
-    yearEnd: 2006,
+    yearStart: 2007,
+    yearEnd: 2013,
     transponderType: "Honda G",
-    chipType: ["G", "TPX2"],
-    compatibleParts: ["35111-S3V-A01", "35111-S3V-A02"]
-  }
+    chipType: JSON.stringify(["G8D", "ID46", "PCF7936"]),
+    compatibleParts: JSON.stringify(["35118-STX-A50", "35118-STX-A51"]),
+    frequency: "315 MHz",
+    notes: "Mid-generation system",
+    dualSystem: false,
+  },
+  {
+    id: "ACURA-RDX-2013-2018",
+    make: "ACURA",
+    model: "RDX",
+    yearStart: 2013,
+    yearEnd: 2018,
+    transponderType: "Honda G",
+    chipType: JSON.stringify(["G8D", "ID46", "PCF7952"]),
+    compatibleParts: JSON.stringify(["35118-TX4-A01", "35118-TX4-A02"]),
+    frequency: "433.92 MHz",
+    notes: "Latest generation system",
+    dualSystem: false,
+  },
+  {
+    id: "ACURA-ILX-2019",
+    make: "ACURA",
+    model: "ILX",
+    yearStart: 2019,
+    yearEnd: null,
+    transponderType: "Honda H",
+    chipType: JSON.stringify(["H-Chip", "ID47", "HITAG 3"]),
+    compatibleParts: JSON.stringify(["35118-TWA-A01", "35118-TWA-A02"]),
+    frequency: "433.92 MHz",
+    notes: "Smart key system",
+    dualSystem: false,
+  },
 ];
-
-module.exports = { acuraTransponderData }; 

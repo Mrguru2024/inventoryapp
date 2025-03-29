@@ -1,82 +1,139 @@
-namespace TransponderSeeds {
-  export const isuzuTransponderData = [
-    // Passenger Vehicles
-    {
-      make: "ISUZU",
-      model: "ASCENDER",
-      yearStart: 2003,
-      yearEnd: 2008,
-      transponderType: "Non-Transponder",
-      chipType: [],
-      notes: "Mechanical key only - no transponder"
-    },
-    {
-      make: "ISUZU",
-      model: "ASKA",
-      yearStart: 1998,
-      yearEnd: 2002,
-      transponderType: "Megamos Crypto 48",
-      chipType: ["ID48", "JMA TP08", "KD48", "CN6"]
-    },
-    {
-      make: "ISUZU",
-      model: "D-MAX",
-      yearStart: 2012,
-      transponderType: "Dual System",
-      chipType: ["Philips Crypto 2 ID46", "NXP Hitag-3", "ID49"],
-      compatibleParts: ["EMU470102", "ACJ932U01"],
-      dualSystem: true,
-      notes: "Vehicle may use either ID46 or ID49 system"
-    },
-    
-    // Commercial Vehicles - Trucks
-    {
-      make: "ISUZU",
-      model: "ELF",
-      yearStart: 2009,
-      transponderType: "Philips Crypto 2",
-      chipType: ["Hitag2", "ID46", "PCF7936", "JMA TP12", "SILCA T14", "CN3"]
-    },
-    
-    // F-Series Trucks (Common System)
-    {
-      make: "ISUZU",
-      model: "FFR",
-      yearStart: 2000,
-      transponderType: "Philips Crypto 2",
-      chipType: ["Hitag2", "ID46", "PCF7936", "JMA TP12", "SILCA T14", "CN3"],
-      notes: "Common system across F-series trucks"
-    },
-    
-    // Legacy Systems
-    {
-      make: "ISUZU",
-      model: "TROOPER",
-      yearStart: 1996,
-      yearEnd: 1998,
-      transponderType: "Megamos ID13",
-      chipType: ["ID13", "Silca 13", "JMA TP05"],
-      notes: "First generation transponder system"
-    },
-    {
-      make: "ISUZU",
-      model: "TROOPER",
-      yearStart: 1998,
-      yearEnd: 2002,
-      transponderType: "Texas Crypto 4D",
-      chipType: ["4D64", "JMA TPX2", "JMA TP21", "SILCA GTI", "YS-01", "K-JMD", "XT27"]
-    },
-    
-    // N-Series Trucks (Common System)
-    {
-      make: "ISUZU",
-      model: "NPR",
-      yearStart: 2000,
-      transponderType: "Philips Crypto 2",
-      chipType: ["Hitag2", "ID46", "PCF7936", "JMA TP12", "SILCA T14", "CN3"],
-      notes: "Common system across N-series trucks"
-    }
-  ];
-}
+import { TransponderData } from "@/app/services/transponderService";
 
-module.exports = TransponderSeeds; 
+export const isuzuTransponderData: TransponderData[] = [
+  {
+    id: "ISUZU-ASCENDER-2003",
+    make: "ISUZU",
+    model: "ASCENDER",
+    yearStart: 2003,
+    yearEnd: 2008,
+    transponderType: "Non-Transponder",
+    chipType: JSON.stringify([]),
+    compatibleParts: JSON.stringify([]),
+    frequency: "N/A",
+    notes: "Mechanical key only - no transponder",
+    dualSystem: false,
+  },
+  {
+    id: "ISUZU-ASKA-1998",
+    make: "ISUZU",
+    model: "ASKA",
+    yearStart: 1998,
+    yearEnd: 2002,
+    transponderType: "Megamos Crypto 48",
+    chipType: JSON.stringify(["ID48", "JMA TP08", "KD48", "CN6"]),
+    compatibleParts: JSON.stringify([]),
+    frequency: "125 kHz",
+    notes: "Legacy system",
+    dualSystem: false,
+  },
+  {
+    id: "ISUZU-DMAX-2012",
+    make: "ISUZU",
+    model: "D-MAX",
+    yearStart: 2012,
+    yearEnd: null,
+    transponderType: "Dual System",
+    chipType: JSON.stringify(["Philips Crypto 2 ID46", "NXP Hitag-3", "ID49"]),
+    compatibleParts: JSON.stringify(["EMU470102", "ACJ932U01"]),
+    frequency: "433.92 MHz",
+    notes: "Vehicle may use either ID46 or ID49 system",
+    dualSystem: true,
+  },
+  {
+    id: "ISUZU-ELF-2009",
+    make: "ISUZU",
+    model: "ELF",
+    yearStart: 2009,
+    yearEnd: null,
+    transponderType: "Philips Crypto 2",
+    chipType: JSON.stringify([
+      "Hitag2",
+      "ID46",
+      "PCF7936",
+      "JMA TP12",
+      "SILCA T14",
+      "CN3",
+    ]),
+    compatibleParts: JSON.stringify([]),
+    frequency: "433.92 MHz",
+    notes: "Commercial vehicle system",
+    dualSystem: false,
+  },
+  {
+    id: "ISUZU-FFR-2000",
+    make: "ISUZU",
+    model: "FFR",
+    yearStart: 2000,
+    yearEnd: null,
+    transponderType: "Philips Crypto 2",
+    chipType: JSON.stringify([
+      "Hitag2",
+      "ID46",
+      "PCF7936",
+      "JMA TP12",
+      "SILCA T14",
+      "CN3",
+    ]),
+    compatibleParts: JSON.stringify([]),
+    frequency: "433.92 MHz",
+    notes: "Common system across F-series trucks",
+    dualSystem: false,
+  },
+  {
+    id: "ISUZU-TROOPER-1996",
+    make: "ISUZU",
+    model: "TROOPER",
+    yearStart: 1996,
+    yearEnd: 1998,
+    transponderType: "Megamos ID13",
+    chipType: JSON.stringify(["ID13", "Silca 13", "JMA TP05"]),
+    compatibleParts: JSON.stringify([]),
+    frequency: "125 kHz",
+    notes: "First generation transponder system",
+    dualSystem: false,
+  },
+  {
+    id: "ISUZU-TROOPER-1998",
+    make: "ISUZU",
+    model: "TROOPER",
+    yearStart: 1998,
+    yearEnd: 2002,
+    transponderType: "Texas Crypto 4D",
+    chipType: JSON.stringify([
+      "4D64",
+      "JMA TPX2",
+      "JMA TP21",
+      "SILCA GTI",
+      "YS-01",
+      "K-JMD",
+      "XT27",
+    ]),
+    compatibleParts: JSON.stringify([]),
+    frequency: "125 kHz",
+    notes: "Second generation system",
+    dualSystem: false,
+  },
+  {
+    id: "ISUZU-NPR-2000",
+    make: "ISUZU",
+    model: "NPR",
+    yearStart: 2000,
+    yearEnd: null,
+    transponderType: "Philips Crypto 2",
+    chipType: JSON.stringify([
+      "Hitag2",
+      "ID46",
+      "PCF7936",
+      "JMA TP12",
+      "SILCA T14",
+      "CN3",
+    ]),
+    compatibleParts: JSON.stringify([]),
+    frequency: "433.92 MHz",
+    notes: "Common system across N-series trucks",
+    dualSystem: false,
+  },
+];
+
+module.exports = isuzuTransponderData;

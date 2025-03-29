@@ -1,81 +1,141 @@
-const fiatTransponderData = [
+import { TransponderData } from "@/app/services/transponderService";
+
+export const fiatTransponderData: TransponderData[] = [
   {
+    id: "FIAT-500-2007",
     make: "FIAT",
     model: "500",
     yearStart: 2007,
     yearEnd: 2018,
     transponderType: "Philips Crypto 2",
-    chipType: ["Hitag 2", "ID46", "PCF7946", "JMA TP12", "XT27", "K-JMD"],
-    compatibleParts: ["71749374", "71776098", "6000626799"],
-    notes: "OEM and aftermarket compatibility"
+    chipType: JSON.stringify([
+      "Hitag 2",
+      "ID46",
+      "PCF7946",
+      "JMA TP12",
+      "XT27",
+      "K-JMD",
+    ]),
+    compatibleParts: JSON.stringify(["71749374", "71776098", "6000626799"]),
+    frequency: "433.92 MHz",
+    notes: "OEM and aftermarket compatibility",
+    dualSystem: false,
   },
   {
+    id: "FIAT-500L-2012",
     make: "FIAT",
     model: "500L",
     yearStart: 2012,
     yearEnd: 2013,
     transponderType: "Philips Crypto 2",
-    chipType: ["Hitag 2", "ID46", "PCF7946", "JMA TP12", "XT27", "K-JMD"],
-    compatibleParts: ["71752197", "6000626708", "6000626710"]
+    chipType: JSON.stringify([
+      "Hitag 2",
+      "ID46",
+      "PCF7946",
+      "JMA TP12",
+      "XT27",
+      "K-JMD",
+    ]),
+    compatibleParts: JSON.stringify(["71752197", "6000626708", "6000626710"]),
+    frequency: "433.92 MHz",
+    notes: "Mid-generation system",
+    dualSystem: false,
   },
   {
+    id: "FIAT-500L-2014",
     make: "FIAT",
     model: "500L",
     yearStart: 2014,
     yearEnd: 2020,
     transponderType: "Megamos AES",
-    chipType: ["ID88"]
+    chipType: JSON.stringify(["ID88"]),
+    compatibleParts: JSON.stringify([]),
+    frequency: "433.92 MHz",
+    notes: "Latest generation system",
+    dualSystem: false,
   },
   {
+    id: "FIAT-500X-2014",
     make: "FIAT",
     model: "500X",
     yearStart: 2014,
     yearEnd: 2020,
     transponderType: "Dual System",
-    chipType: ["Megamos AES ID88", "Philips Crypto 3", "Hitag 3", "ID49"],
-    notes: "Vehicle may use either system - verification required"
+    chipType: JSON.stringify([
+      "Megamos AES ID88",
+      "Philips Crypto 3",
+      "Hitag 3",
+      "ID49",
+    ]),
+    compatibleParts: JSON.stringify([]),
+    frequency: "433.92 MHz",
+    notes: "Vehicle may use either system - verification required",
+    dualSystem: true,
   },
-  // Legacy systems (1995-2002 era)
   {
+    id: "FIAT-BARCHETTA-1995",
     make: "FIAT",
     model: "BARCHETTA",
     yearStart: 1995,
     yearEnd: 2002,
     transponderType: "Megamos 13",
-    chipType: ["ID13", "JMA TP05", "SILCA T5"],
-    notes: "First generation transponder system"
+    chipType: JSON.stringify(["ID13", "JMA TP05", "SILCA T5"]),
+    compatibleParts: JSON.stringify([]),
+    frequency: "125 kHz",
+    notes: "First generation transponder system",
+    dualSystem: false,
   },
-  // Modern systems (2015+)
   {
+    id: "FIAT-TIPO-2015",
     make: "FIAT",
     model: "TIPO",
     yearStart: 2015,
+    yearEnd: null,
     transponderType: "Megamos AES",
-    chipType: ["ID88"],
-    compatibleParts: ["71778806", "6000626702"],
-    notes: "Latest generation transponder system"
+    chipType: JSON.stringify(["ID88"]),
+    compatibleParts: JSON.stringify(["71778806", "6000626702"]),
+    frequency: "433.92 MHz",
+    notes: "Latest generation transponder system",
+    dualSystem: false,
   },
-  // Dual system examples
   {
+    id: "FIAT-BRAVO-1997",
     make: "FIAT",
     model: "BRAVO",
     yearStart: 1997,
     yearEnd: 2001,
     transponderType: "Dual System",
-    chipType: ["Megamos 13", "ID13", "Temic 11", "ID11", "JMA TP05", "SILCA T5"],
-    notes: "Vehicle may use either Megamos 13 or Temic 11 system"
+    chipType: JSON.stringify([
+      "Megamos 13",
+      "ID13",
+      "Temic 11",
+      "ID11",
+      "JMA TP05",
+      "SILCA T5",
+    ]),
+    compatibleParts: JSON.stringify([]),
+    frequency: "125 kHz",
+    notes: "Vehicle may use either Megamos 13 or Temic 11 system",
+    dualSystem: true,
   },
-  // Commercial vehicles
   {
+    id: "FIAT-DUCATO-2008",
     make: "FIAT",
     model: "DUCATO",
     yearStart: 2008,
     yearEnd: 2020,
     transponderType: "Philips Crypto 2",
-    chipType: ["Hitag 2", "ID46", "PCF7946", "JMA TP12", "XT27", "K-JMD"],
-    compatibleParts: ["6000627330", "6000628569", "6000631468"],
-    notes: "Commercial vehicle system"
-  }
+    chipType: JSON.stringify([
+      "Hitag 2",
+      "ID46",
+      "PCF7946",
+      "JMA TP12",
+      "XT27",
+      "K-JMD",
+    ]),
+    compatibleParts: JSON.stringify(["6000627330", "6000628569", "6000631468"]),
+    frequency: "433.92 MHz",
+    notes: "Commercial vehicle system",
+    dualSystem: false,
+  },
 ];
-
-module.exports = { fiatTransponderData }; 

@@ -1,36 +1,35 @@
-import { NextAuthOptions } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import { PrismaAdapter } from '@prisma/client/adapter';
-import { prisma } from '@/lib/prisma';
-import { compare } from 'bcryptjs';
+import { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { prisma } from "@/lib/prisma";
+import { compare } from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   session: {
-    strategy: 'jwt'
+    strategy: "jwt",
   },
   pages: {
-    signIn: '/auth/login',
+    signIn: "/auth/login",
   },
   providers: [
     CredentialsProvider({
-      name: 'credentials',
+      name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Invalid credentials');
+          return null;
         }
 
         const user = await prisma.user.findUnique({
           where: {
-            email: credentials.email
-          }
+            email: credentials.email,
+          },
         });
 
         if (!user) {
-          throw new Error('Invalid credentials');
+          return null;
         }
 
         const isPasswordValid = await compare(
@@ -39,17 +38,17 @@ export const authOptions: NextAuthOptions = {
         );
 
         if (!isPasswordValid) {
-          throw new Error('Invalid credentials');
+          return null;
         }
 
         return {
-          id: user.id,
+          id: String(user.id),
           email: user.email,
           name: user.name,
           role: user.role,
         };
-      }
-    })
+      },
+    }),
   ],
   callbacks: {
     async jwt({ token, user }) {
@@ -67,8 +66,8 @@ export const authOptions: NextAuthOptions = {
         user: {
           ...session.user,
           role: token.role,
-        }
+        },
       };
-    }
-  }
-}; 
+    },
+  },
+};

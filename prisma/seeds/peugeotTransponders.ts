@@ -1,79 +1,109 @@
-import { TransponderKeyData } from '@/app/services/transponderService';
+import { TransponderData } from "@/app/services/transponderService";
 
-const peugeotTransponderData: TransponderKeyData[] = [
-  // Modern AES Systems (2017+)
+export const peugeotTransponderData: TransponderData[] = [
   {
+    id: "PEUGEOT-3008-2017",
     make: "PEUGEOT",
     model: "3008",
     yearStart: 2017,
+    yearEnd: null,
     transponderType: "Hitag AES",
-    chipType: ["ID4A", "PCF7953M"],
-    compatibleParts: ["98105588ZD", "98124195ZD"],
-    notes: "Latest generation transponder system"
+    chipType: JSON.stringify(["ID4A", "PCF7953M"]),
+    compatibleParts: JSON.stringify(["98105588ZD", "98124195ZD"]),
+    frequency: "433.92 MHz",
+    notes: "Latest generation transponder system",
+    dualSystem: false,
   },
-  
-  // Legacy Systems (1996-2001)
   {
+    id: "PEUGEOT-106-1996",
     make: "PEUGEOT",
     model: "106",
     yearStart: 1996,
     yearEnd: 2000,
     transponderType: "Philips 33",
-    chipType: ["ID33", "PCF7930", "PCF7931", "JMA TP05", "Silca T1"],
-    notes: "First generation transponder system"
+    chipType: JSON.stringify([
+      "ID33",
+      "PCF7930",
+      "PCF7931",
+      "JMA TP05",
+      "Silca T1",
+    ]),
+    compatibleParts: JSON.stringify([]),
+    frequency: "125 kHz",
+    notes: "First generation transponder system",
+    dualSystem: false,
   },
-  
-  // Hitag2 Systems (2001-2016)
   {
+    id: "PEUGEOT-308-2007",
     make: "PEUGEOT",
     model: "308",
     yearStart: 2007,
     yearEnd: 2012,
     transponderType: "Hitag2",
-    chipType: ["ID46", "PCF7936", "JMA TP12", "SILCA T14", "XT27", "K-JMD"],
-    compatibleParts: ["6490CS", "6490CT"],
-    notes: "PCF7941/PCF7961 transponder compatible"
+    chipType: JSON.stringify([
+      "ID46",
+      "PCF7936",
+      "JMA TP12",
+      "SILCA T14",
+      "XT27",
+      "K-JMD",
+    ]),
+    compatibleParts: JSON.stringify(["6490CS", "6490CT"]),
+    frequency: "433.92 MHz",
+    notes: "PCF7941/PCF7961 transponder compatible",
+    dualSystem: false,
   },
-  
-  // Commercial Vehicles
   {
+    id: "PEUGEOT-BOXER-2007",
     make: "PEUGEOT",
     model: "BOXER",
     yearStart: 2007,
     yearEnd: 2016,
     transponderType: "Hitag2+",
-    chipType: ["ID46", "PCF7946A"],
-    compatibleParts: ["71752589", "71776161", "6000627330"],
-    notes: "Commercial vehicle system"
+    chipType: JSON.stringify(["ID46", "PCF7946A"]),
+    compatibleParts: JSON.stringify(["71752589", "71776161", "6000627330"]),
+    frequency: "433.92 MHz",
+    notes: "Commercial vehicle system",
+    dualSystem: false,
   },
-  
-  // Latest Generation (2018+)
   {
+    id: "PEUGEOT-RIFTER-2018",
     make: "PEUGEOT",
     model: "RIFTER",
     yearStart: 2018,
+    yearEnd: null,
     transponderType: "Hitag AES",
-    chipType: ["ID4A", "ID51", "PCF7953M"],
-    compatibleParts: ["98105588ZD", "98124195ZD"],
-    notes: "Latest platform transponder"
+    chipType: JSON.stringify(["ID4A", "ID51", "PCF7953M"]),
+    compatibleParts: JSON.stringify(["98105588ZD", "98124195ZD"]),
+    frequency: "433.92 MHz",
+    notes: "Latest platform transponder",
+    dualSystem: false,
   },
-  
-  // Motorcycles/Scooters (🏍)
   {
+    id: "PEUGEOT-SATELIS-2006",
     make: "PEUGEOT",
     model: "SATELIS",
     yearStart: 2006,
+    yearEnd: null,
     transponderType: "Temic 11",
-    chipType: ["ID11", "JMA TP05", "SILCA T5"],
-    notes: "Motorcycle/Scooter system"
+    chipType: JSON.stringify(["ID11", "JMA TP05", "SILCA T5"]),
+    compatibleParts: JSON.stringify([]),
+    frequency: "125 kHz",
+    notes: "Motorcycle/Scooter system",
+    dualSystem: false,
   },
   {
+    id: "PEUGEOT-SPEEDFIGHT-1997",
     make: "PEUGEOT",
     model: "SPEEDFIGHT",
     yearStart: 1997,
+    yearEnd: null,
     transponderType: "Temic 11",
-    chipType: ["ID11", "JMA TP05", "SILCA T5"],
-    notes: "Motorcycle/Scooter system"
+    chipType: JSON.stringify(["ID11", "JMA TP05", "SILCA T5"]),
+    compatibleParts: JSON.stringify([]),
+    frequency: "125 kHz",
+    notes: "Motorcycle/Scooter system",
+    dualSystem: false,
   },
   {
     id: "PEUGEOT-206-2000",
@@ -82,9 +112,12 @@ const peugeotTransponderData: TransponderKeyData[] = [
     yearStart: 2000,
     yearEnd: 2010,
     transponderType: "Philips Crypto 2",
-    chipType: ["ID46", "PCF7936", "TP12"],
-    compatibleParts: ["VA2", "HU83"]
-  }
+    chipType: JSON.stringify(["ID46", "PCF7936", "TP12"]),
+    compatibleParts: JSON.stringify(["VA2", "HU83"]),
+    frequency: "433.92 MHz",
+    notes: "Mid-generation system",
+    dualSystem: false,
+  },
 ];
 
-module.exports = { peugeotTransponderData }; 
+module.exports = { peugeotTransponderData };

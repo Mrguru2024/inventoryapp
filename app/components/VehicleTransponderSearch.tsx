@@ -1,16 +1,32 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Check, AlertTriangle, ChevronDown, Loader2, KeyRound, RefreshCcw, Search, X, Filter, SplitSquareHorizontal, Clock, Trash2 } from 'lucide-react';
-import { Listbox, Transition, Switch, Combobox, Tab } from '@headlessui/react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { TransponderKeyData, getTransponders } from '@/app/services/transponderService';
-import { fuzzySearch } from '@/app/services/searchService';
-import { SearchSuggestion, RecentSearch } from '@/app/types/search';
-import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
-import debounce from 'lodash/debounce';
-import logger from '@/app/utils/logger';
-import SearchAnalyticsService from '@/app/services/analyticsService';
+import { useState, useEffect, useMemo, useCallback, Fragment } from "react";
+import {
+  Check,
+  AlertTriangle,
+  ChevronDown,
+  Loader2,
+  KeyRound,
+  RefreshCcw,
+  Search,
+  X,
+  Filter,
+  SplitSquareHorizontal,
+  Clock,
+  Trash2,
+} from "lucide-react";
+import { Listbox, Transition, Switch, Combobox, Tab } from "@headlessui/react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  TransponderKeyData,
+  getTransponders,
+} from "@/app/services/transponderService";
+import { fuzzySearch } from "@/app/services/searchService";
+import { SearchSuggestion, RecentSearch } from "@/app/types/search";
+import { ErrorBoundary, FallbackProps } from "react-error-boundary";
+import debounce from "lodash/debounce";
+import logger from "@/app/utils/logger";
+import SearchAnalyticsService from "@/app/services/analyticsService";
 
 interface Make {
   MakeId: number;
@@ -38,7 +54,7 @@ interface FilterOptions {
 
 interface SearchSuggestion {
   id: string;
-  type: 'make' | 'model' | 'chipType' | 'transponderType';
+  type: "make" | "model" | "chipType" | "transponderType";
   value: string;
 }
 
@@ -61,18 +77,22 @@ interface DetailedLoadingState {
 interface SearchHistory {
   id: string;
   query: string;
-  type: 'make' | 'model' | 'chipType' | 'transponderType';
+  type: "make" | "model" | "chipType" | "transponderType";
   timestamp: number;
 }
 
-const RECENT_SEARCHES_KEY = 'recent-searches';
+const RECENT_SEARCHES_KEY = "recent-searches";
 const MAX_RECENT_SEARCHES = 5;
 
 function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   return (
     <div className="p-4 bg-red-50 dark:bg-red-900/30 rounded-lg">
-      <h3 className="text-red-800 dark:text-red-200 font-medium">Something went wrong:</h3>
-      <pre className="text-sm text-red-600 dark:text-red-300 mt-2">{error.message}</pre>
+      <h3 className="text-red-800 dark:text-red-200 font-medium">
+        Something went wrong:
+      </h3>
+      <pre className="text-sm text-red-600 dark:text-red-300 mt-2">
+        {error.message}
+      </pre>
       <button
         onClick={resetErrorBoundary}
         className="mt-4 px-4 py-2 bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200 rounded-md hover:bg-red-200 dark:hover:bg-red-700"
@@ -83,10 +103,18 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   );
 }
 
-const KeyboardHint = ({ shortcut, action }: { shortcut: string; action: string }) => (
+const KeyboardHint = ({
+  shortcut,
+  action,
+}: {
+  shortcut: string;
+  action: string;
+}) => (
   <div className="flex items-center justify-between px-3 py-1 text-xs text-gray-500 dark:text-gray-400">
     <span>{action}</span>
-    <kbd className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 rounded">{shortcut}</kbd>
+    <kbd className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 rounded">
+      {shortcut}
+    </kbd>
   </div>
 );
 
@@ -102,52 +130,72 @@ export default function VehicleTransponderSearch() {
   const [filters, setFilters] = useState<FilterOptions | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [compareMode, setCompareMode] = useState(false);
-  const [comparedTransponders, setComparedTransponders] = useState<TransponderKeyData[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [comparedTransponders, setComparedTransponders] = useState<
+    TransponderKeyData[]
+  >([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
   const [loadingStates, setLoadingStates] = useState<DetailedLoadingState>({
     makes: false,
     models: false,
     transponders: false,
     search: false,
     filters: false,
-    comparison: false
+    comparison: false,
   });
   const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [popularSearches, setPopularSearches] = useState<{ query: string; count: number }[]>([]);
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [popularSearches, setPopularSearches] = useState<
+    { query: string; count: number }[]
+  >([]);
 
   // Add categories
   const categories = [
-    { id: 'all', name: 'All' },
-    { id: 'makes', name: 'Makes' },
-    { id: 'models', name: 'Models' },
-    { id: 'chips', name: 'Chip Types' },
-    { id: 'transponders', name: 'Transponders' }
+    { id: "all", name: "All" },
+    { id: "makes", name: "Makes" },
+    { id: "models", name: "Models" },
+    { id: "chips", name: "Chip Types" },
+    { id: "transponders", name: "Transponders" },
   ];
 
   // Add data validation
-  const validateTransponderData = (data: TransponderKeyData[]): ValidationError[] => {
+  const validateTransponderData = (
+    data: TransponderKeyData[]
+  ): ValidationError[] => {
     const errors: ValidationError[] = [];
-    
-    data.forEach(transponder => {
+
+    data.forEach((transponder) => {
       if (!transponder.make) {
-        errors.push({ field: 'make', message: `Missing make for transponder ${transponder.id}` });
+        errors.push({
+          field: "make",
+          message: `Missing make for transponder ${transponder.id}`,
+        });
       }
       if (!transponder.model) {
-        errors.push({ field: 'model', message: `Missing model for transponder ${transponder.id}` });
+        errors.push({
+          field: "model",
+          message: `Missing model for transponder ${transponder.id}`,
+        });
       }
       if (!transponder.yearStart) {
-        errors.push({ field: 'yearStart', message: `Missing year start for transponder ${transponder.id}` });
+        errors.push({
+          field: "yearStart",
+          message: `Missing year start for transponder ${transponder.id}`,
+        });
       }
       if (!transponder.chipType || transponder.chipType.length === 0) {
-        errors.push({ field: 'chipType', message: `Missing chip type for transponder ${transponder.id}` });
+        errors.push({
+          field: "chipType",
+          message: `Missing chip type for transponder ${transponder.id}`,
+        });
       }
     });
 
@@ -157,18 +205,24 @@ export default function VehicleTransponderSearch() {
   // Enhanced data fetching with better error handling
   useEffect(() => {
     const fetchInitialData = async () => {
-      setLoadingStates(prev => ({ ...prev, makes: true, transponders: true }));
+      setLoadingStates((prev) => ({
+        ...prev,
+        makes: true,
+        transponders: true,
+      }));
       try {
-        logger.info('Fetching initial data...');
-        
+        logger.info("Fetching initial data...");
+
         // Fetch makes from NHTSA API
-        const makesResponse = await fetch('https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json');
+        const makesResponse = await fetch(
+          "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json"
+        );
         if (!makesResponse.ok) {
           throw new Error(`NHTSA API error: ${makesResponse.statusText}`);
         }
         const makesData = await makesResponse.json();
-        logger.debug('Makes data received:', makesData);
-        
+        logger.debug("Makes data received:", makesData);
+
         if (makesData.Results) {
           setMakes(makesData.Results);
         }
@@ -176,24 +230,30 @@ export default function VehicleTransponderSearch() {
         // Fetch transponder data with error handling
         const transpondersData = await getTransponders();
         if (!transpondersData.length) {
-          logger.warn('No transponder data received');
+          logger.warn("No transponder data received");
         } else {
-          logger.debug('Transponders data received:', transpondersData);
+          logger.debug("Transponders data received:", transpondersData);
         }
-        
+
         // Validate transponder data
         const validationErrors = validateTransponderData(transpondersData);
         if (validationErrors.length > 0) {
-          logger.warn('Validation errors found:', validationErrors);
+          logger.warn("Validation errors found:", validationErrors);
           setValidationErrors(validationErrors);
         }
 
         setTransponders(transpondersData);
       } catch (error) {
-        logger.error('Error fetching initial data:', error);
-        setError(error instanceof Error ? error.message : 'Failed to load initial data');
+        logger.error("Error fetching initial data:", error);
+        setError(
+          error instanceof Error ? error.message : "Failed to load initial data"
+        );
       } finally {
-        setLoadingStates(prev => ({ ...prev, makes: false, transponders: false }));
+        setLoadingStates((prev) => ({
+          ...prev,
+          makes: false,
+          transponders: false,
+        }));
       }
     };
 
@@ -201,70 +261,78 @@ export default function VehicleTransponderSearch() {
   }, []);
 
   // Enhanced models fetching
-  const fetchModels = async (make: string) => {
-    setLoadingStates(prev => ({ ...prev, models: true }));
+  const fetchModels = useCallback(async (make: string) => {
+    setLoadingStates((prev) => ({ ...prev, models: true }));
     try {
       logger.info(`Fetching models for make: ${make}`);
-      
+
       const response = await fetch(
-        `https://vpic.nhtsa.dot.gov/api/vehicles/getmodelsformake/${encodeURIComponent(make)}?format=json`
+        `https://vpic.nhtsa.dot.gov/api/vehicles/getmodelsformake/${encodeURIComponent(
+          make
+        )}?format=json`
       );
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch models: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      logger.debug('Models data received:', data);
-      
-      if (data.Results) {
+      logger.debug("Models data received:", data);
+
+      if (data.Results && Array.isArray(data.Results)) {
         setModels(data.Results);
+      } else {
+        setModels([]);
+        logger.warn("No valid models data received");
       }
     } catch (error) {
       logger.error(`Error fetching models for ${make}:`, error);
       setModels([]);
       setError(`Failed to load models for ${make}`);
     } finally {
-      setLoadingStates(prev => ({ ...prev, models: false }));
+      setLoadingStates((prev) => ({ ...prev, models: false }));
     }
-  };
+  }, []);
 
-  useEffect(() => {
-    console.log('Makes:', makes);
-    console.log('Models:', models);
-    console.log('Transponders:', transponders);
-  }, [makes, models, transponders]);
-
-  const handleMakeChange = (make: Make | null) => {
-    setSelectedMake(make);
-    setSelectedModel(null);
-    setSearchResults(null);
-    if (make) {
-      fetchModels(make.MakeName);
-    } else {
-      setModels([]);
-    }
-  };
-
-  const handleModelChange = (model: Model | null) => {
-    setSelectedModel(model);
-    if (model && selectedMake) {
-      const matchingTransponders = transponders.filter(t => 
-        t.make.toLowerCase() === selectedMake.MakeName.toLowerCase() &&
-        t.model.toLowerCase() === model.ModelName.toLowerCase()
-      );
-      
-      setSearchResults({
-        vehicle: {
-          make: selectedMake.MakeName,
-          model: model.ModelName
-        },
-        transponders: matchingTransponders
-      });
-    } else {
+  // Update handleMakeChange to properly handle make selection
+  const handleMakeChange = useCallback(
+    (make: Make | null) => {
+      setSelectedMake(make);
+      setSelectedModel(null);
       setSearchResults(null);
-    }
-  };
+      if (make) {
+        fetchModels(make.MakeName);
+      } else {
+        setModels([]);
+      }
+    },
+    [fetchModels]
+  );
+
+  // Update handleModelChange to properly handle model selection
+  const handleModelChange = useCallback(
+    (model: Model | null) => {
+      setSelectedModel(model);
+      if (model && selectedMake) {
+        const matchingTransponders = transponders.filter(
+          (t) =>
+            t.make.toLowerCase() === selectedMake.MakeName.toLowerCase() &&
+            t.model.toLowerCase() === model.ModelName.toLowerCase()
+        );
+
+        setSearchResults({
+          vehicle: {
+            make: selectedMake.MakeName,
+            model: model.ModelName,
+          },
+          transponders: matchingTransponders,
+        });
+      } else {
+        setSearchResults(null);
+      }
+    },
+    [selectedMake, transponders]
+  );
 
   // Initialize filters when transponders are loaded
   useEffect(() => {
@@ -274,48 +342,175 @@ export default function VehicleTransponderSearch() {
       let minYear = Infinity;
       let maxYear = -Infinity;
 
-      transponders.forEach(t => {
-        t.chipType.forEach(chip => chipTypes.add(chip));
-        if (t.frequency) frequencies.add(t.frequency);
-        minYear = Math.min(minYear, t.yearStart);
-        maxYear = Math.max(maxYear, t.yearEnd || new Date().getFullYear());
+      transponders.forEach((t) => {
+        // Add chip types
+        if (Array.isArray(t.chipType)) {
+          t.chipType.forEach((chip) => chipTypes.add(chip));
+        }
+
+        // Add frequency if it exists
+        if (t.frequency) {
+          frequencies.add(t.frequency);
+        }
+
+        // Update year range
+        if (t.yearStart) {
+          minYear = Math.min(minYear, t.yearStart);
+        }
+        if (t.yearEnd) {
+          maxYear = Math.max(maxYear, t.yearEnd);
+        } else {
+          maxYear = Math.max(maxYear, new Date().getFullYear());
+        }
       });
 
+      // Set default values if no data found
+      if (minYear === Infinity) minYear = 1990;
+      if (maxYear === -Infinity) maxYear = new Date().getFullYear();
+
       setFilters({
-        chipTypes: Array.from(chipTypes),
-        frequencies: Array.from(frequencies),
-        yearRange: [minYear, maxYear]
+        chipTypes: Array.from(chipTypes).sort(),
+        frequencies: Array.from(frequencies).sort(),
+        yearRange: [minYear, maxYear],
+      });
+
+      // Log filter initialization
+      logger.debug("Filters initialized:", {
+        chipTypes: Array.from(chipTypes).length,
+        frequencies: Array.from(frequencies).length,
+        yearRange: [minYear, maxYear],
       });
     }
   }, [transponders]);
 
-  // Filter and search results
-  const filteredResults = useMemo(() => {
-    if (!searchResults) return null;
+  // Add state for selected filters
+  const [selectedFilters, setSelectedFilters] = useState({
+    chipTypes: new Set<string>(),
+    frequencies: new Set<string>(),
+    yearRange: [0, 0],
+  });
 
-    let filtered = searchResults.transponders;
-
-    // Apply search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(t =>
-        t.transponderType.toLowerCase().includes(query) ||
-        t.chipType.some(chip => chip.toLowerCase().includes(query)) ||
-        (t.compatibleParts?.some(part => part.toLowerCase().includes(query)))
-      );
+  // Update selected filters when filters are initialized
+  useEffect(() => {
+    if (filters) {
+      setSelectedFilters({
+        chipTypes: new Set(),
+        frequencies: new Set(),
+        yearRange: filters.yearRange,
+      });
     }
+  }, [filters]);
 
-    return {
-      ...searchResults,
-      transponders: filtered
-    };
-  }, [searchResults, searchQuery]);
+  // Handle filter changes
+  const handleFilterChange = useCallback(
+    (type: "chipTypes" | "frequencies" | "yearRange", value: any) => {
+      setSelectedFilters((prev) => {
+        const newFilters = { ...prev };
+
+        switch (type) {
+          case "chipTypes":
+            if (prev.chipTypes.has(value)) {
+              prev.chipTypes.delete(value);
+            } else {
+              prev.chipTypes.add(value);
+            }
+            break;
+          case "frequencies":
+            if (prev.frequencies.has(value)) {
+              prev.frequencies.delete(value);
+            } else {
+              prev.frequencies.add(value);
+            }
+            break;
+          case "yearRange":
+            newFilters.yearRange = value;
+            break;
+        }
+
+        return newFilters;
+      });
+    },
+    []
+  );
+
+  // Update the filter panel JSX
+  const FilterPanel = () => (
+    <motion.div
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
+      className="bg-white dark:bg-gray-800 border rounded-lg p-4"
+    >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Chip Types */}
+        <div>
+          <h4 className="font-medium mb-2">Chip Types</h4>
+          <div className="space-y-2">
+            {filters?.chipTypes.map((chip) => (
+              <label key={chip} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={selectedFilters.chipTypes.has(chip)}
+                  onChange={() => handleFilterChange("chipTypes", chip)}
+                  className="rounded"
+                />
+                <span>{chip}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Frequencies */}
+        <div>
+          <h4 className="font-medium mb-2">Frequencies</h4>
+          <div className="space-y-2">
+            {filters?.frequencies.map((freq) => (
+              <label key={freq} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={selectedFilters.frequencies.has(freq)}
+                  onChange={() => handleFilterChange("frequencies", freq)}
+                  className="rounded"
+                />
+                <span>{freq}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Year Range */}
+        <div>
+          <h4 className="font-medium mb-2">Year Range</h4>
+          <div className="space-y-4">
+            <input
+              type="range"
+              min={filters?.yearRange[0]}
+              max={filters?.yearRange[1]}
+              value={selectedFilters.yearRange[1]}
+              onChange={(e) =>
+                handleFilterChange("yearRange", [
+                  selectedFilters.yearRange[0],
+                  parseInt(e.target.value),
+                ])
+              }
+              className="w-full"
+              aria-label="Year range slider"
+            />
+            <div className="flex justify-between text-sm">
+              <span>{selectedFilters.yearRange[0]}</span>
+              <span>{selectedFilters.yearRange[1]}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
 
   const handleCompareToggle = (transponder: TransponderKeyData) => {
-    setComparedTransponders(prev => {
-      const exists = prev.find(t => t.id === transponder.id);
+    setComparedTransponders((prev) => {
+      const exists = prev.find((t) => t.id === transponder.id);
       if (exists) {
-        return prev.filter(t => t.id !== transponder.id);
+        return prev.filter((t) => t.id !== transponder.id);
       }
       if (prev.length >= 3) {
         return prev;
@@ -327,47 +522,47 @@ export default function VehicleTransponderSearch() {
   // Generate search suggestions from transponders
   const generateSuggestions = useMemo(() => {
     const suggestions: SearchSuggestion[] = [];
-    
-    transponders.forEach(t => {
+
+    transponders.forEach((t) => {
       // Add make suggestions
-      if (!suggestions.some(s => s.value === t.make)) {
+      if (!suggestions.some((s) => s.value === t.make)) {
         suggestions.push({
           id: `make-${t.make}`,
-          type: 'make',
-          value: t.make
+          type: "make",
+          value: t.make,
         });
       }
-      
+
       // Add model suggestions
-      if (!suggestions.some(s => s.value === t.model)) {
+      if (!suggestions.some((s) => s.value === t.model)) {
         suggestions.push({
           id: `model-${t.model}`,
-          type: 'model',
-          value: t.model
+          type: "model",
+          value: t.model,
         });
       }
-      
+
       // Add chip type suggestions
-      t.chipType.forEach(chip => {
-        if (!suggestions.some(s => s.value === chip)) {
+      t.chipType.forEach((chip) => {
+        if (!suggestions.some((s) => s.value === chip)) {
           suggestions.push({
             id: `chip-${chip}`,
-            type: 'chipType',
-            value: chip
+            type: "chipType",
+            value: chip,
           });
         }
       });
-      
+
       // Add transponder type suggestions
-      if (!suggestions.some(s => s.value === t.transponderType)) {
+      if (!suggestions.some((s) => s.value === t.transponderType)) {
         suggestions.push({
           id: `transponder-${t.transponderType}`,
-          type: 'transponderType',
-          value: t.transponderType
+          type: "transponderType",
+          value: t.transponderType,
         });
       }
     });
-    
+
     return suggestions;
   }, [transponders]);
 
@@ -375,60 +570,68 @@ export default function VehicleTransponderSearch() {
   const getSearchScore = (text: string, query: string): number => {
     text = text.toLowerCase();
     query = query.toLowerCase();
-    
+
     if (text === query) return 1;
     if (text.startsWith(query)) return 0.8;
     if (text.includes(query)) return 0.6;
-    
+
     let score = 0;
-    const words = query.split(' ');
+    const words = query.split(" ");
     for (const word of words) {
       if (text.includes(word)) score += 0.4;
     }
-    
+
     return score;
   };
 
   // Enhanced filtered suggestions with better scoring
   const filteredSuggestions = useMemo(() => {
     if (!searchQuery.trim()) return [];
-    
+
     return generateSuggestions
-      .map(suggestion => ({
+      .map((suggestion) => ({
         ...suggestion,
-        score: getSearchScore(suggestion.value, searchQuery)
+        score: getSearchScore(suggestion.value, searchQuery),
       }))
-      .filter(s => s.score > 0)
+      .filter((s) => s.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
   }, [generateSuggestions, searchQuery]);
 
   // Handle search selection
-  const handleSearchSelection = (value: string) => {
-    const selected = generateSuggestions.find(s => s.value === value);
-    if (!selected) return;
+  const handleSearchSelection = useCallback(
+    (value: string) => {
+      const selected = generateSuggestions.find((s) => s.value === value);
+      if (!selected) return;
 
-    // Filter transponders based on selection type
-    const filtered = transponders.filter(t => {
-      switch (selected.type) {
-        case 'make':
-          return t.make.toLowerCase() === value.toLowerCase();
-        case 'model':
-          return t.model.toLowerCase() === value.toLowerCase();
-        case 'chipType':
-          return t.chipType.some(chip => chip.toLowerCase() === value.toLowerCase());
-        case 'transponderType':
-          return t.transponderType.toLowerCase() === value.toLowerCase();
-        default:
-          return false;
-      }
-    });
+      // Filter transponders based on selection type
+      const filtered = transponders.filter((t) => {
+        switch (selected.type) {
+          case "make":
+            return t.make.toLowerCase() === value.toLowerCase();
+          case "model":
+            return t.model.toLowerCase() === value.toLowerCase();
+          case "chipType":
+            return t.chipType.some(
+              (chip) => chip.toLowerCase() === value.toLowerCase()
+            );
+          case "transponderType":
+            return t.transponderType.toLowerCase() === value.toLowerCase();
+          default:
+            return false;
+        }
+      });
 
-    setSearchResults({
-      vehicle: { make: '', model: '' },
-      transponders: filtered
-    });
-  };
+      setSearchResults({
+        vehicle: { make: "", model: "" },
+        transponders: filtered,
+      });
+
+      // Add to search history
+      addToSearchHistory(value, selected.type);
+    },
+    [generateSuggestions, transponders, addToSearchHistory]
+  );
 
   // Load recent searches on mount
   useEffect(() => {
@@ -444,11 +647,11 @@ export default function VehicleTransponderSearch() {
       id: suggestion.id,
       query: suggestion.value,
       timestamp: Date.now(),
-      type: suggestion.type
+      type: suggestion.type,
     };
 
-    setRecentSearches(prev => {
-      const filtered = prev.filter(s => s.id !== suggestion.id);
+    setRecentSearches((prev) => {
+      const filtered = prev.filter((s) => s.id !== suggestion.id);
       const updated = [newRecent, ...filtered].slice(0, MAX_RECENT_SEARCHES);
       localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
       return updated;
@@ -461,7 +664,7 @@ export default function VehicleTransponderSearch() {
     setPopularSearches(popular);
   }, []);
 
-  // Enhanced search handler
+  // Optimize handleSearch with proper dependencies
   const handleSearch = useCallback(
     debounce(async (query: string) => {
       if (!query.trim()) {
@@ -469,75 +672,87 @@ export default function VehicleTransponderSearch() {
         return;
       }
 
-      setLoadingStates(prev => ({ ...prev, search: true }));
-      
-      const results = transponders.filter(t => {
-        const searchLower = query.toLowerCase();
-        
-        // Filter based on active category
-        switch (activeCategory) {
-          case 'makes':
-            return t.make.toLowerCase().includes(searchLower);
-          case 'models':
-            return t.model.toLowerCase().includes(searchLower);
-          case 'chips':
-            return t.chipType.some(chip => chip.toLowerCase().includes(searchLower));
-          case 'transponders':
-            return t.transponderType.toLowerCase().includes(searchLower);
-          default:
-            return (
-              t.make.toLowerCase().includes(searchLower) ||
-              t.model.toLowerCase().includes(searchLower) ||
-              t.transponderType.toLowerCase().includes(searchLower) ||
-              t.chipType.some(chip => chip.toLowerCase().includes(searchLower))
-            );
-        }
-      });
+      setLoadingStates((prev) => ({ ...prev, search: true }));
 
-      // Log search analytics
-      await SearchAnalyticsService.logSearch({
-        query,
-        category: activeCategory,
-        timestamp: Date.now(),
-        resultsCount: results.length,
-        filters: filters
-      });
+      try {
+        const results = transponders.filter((t) => {
+          const searchLower = query.toLowerCase();
 
-      setSearchResults({
-        vehicle: { make: '', model: '' },
-        transponders: results
-      });
-      
-      setLoadingStates(prev => ({ ...prev, search: false }));
+          // Filter based on active category
+          switch (activeCategory) {
+            case "makes":
+              return t.make.toLowerCase().includes(searchLower);
+            case "models":
+              return t.model.toLowerCase().includes(searchLower);
+            case "chips":
+              return t.chipType.some((chip) =>
+                chip.toLowerCase().includes(searchLower)
+              );
+            case "transponders":
+              return t.transponderType.toLowerCase().includes(searchLower);
+            default:
+              return (
+                t.make.toLowerCase().includes(searchLower) ||
+                t.model.toLowerCase().includes(searchLower) ||
+                t.transponderType.toLowerCase().includes(searchLower) ||
+                t.chipType.some((chip) =>
+                  chip.toLowerCase().includes(searchLower)
+                )
+              );
+          }
+        });
+
+        // Log search analytics
+        await SearchAnalyticsService.logSearch({
+          query,
+          category: activeCategory,
+          timestamp: Date.now(),
+          resultsCount: results.length,
+          filters: filters,
+        });
+
+        setSearchResults({
+          vehicle: { make: "", model: "" },
+          transponders: results,
+        });
+      } catch (error) {
+        console.error("Search error:", error);
+        setError("Failed to perform search");
+      } finally {
+        setLoadingStates((prev) => ({ ...prev, search: false }));
+      }
     }, 300),
     [transponders, activeCategory, filters]
   );
 
   // Add this function to handle search history
-  const addToSearchHistory = (value: string, type: SearchHistory['type']) => {
-    setSearchHistory(prev => {
+  const addToSearchHistory = (value: string, type: SearchHistory["type"]) => {
+    setSearchHistory((prev) => {
       const newHistory = [
         {
           id: `${Date.now()}-${value}`,
           query: value,
           type,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         },
-        ...prev.filter(h => h.query !== value).slice(0, 9) // Keep last 10 unique searches
+        ...prev.filter((h) => h.query !== value).slice(0, 9), // Keep last 10 unique searches
       ];
-      localStorage.setItem('transponder-search-history', JSON.stringify(newHistory));
+      localStorage.setItem(
+        "transponder-search-history",
+        JSON.stringify(newHistory)
+      );
       return newHistory;
     });
   };
 
   // Load search history on mount
   useEffect(() => {
-    const savedHistory = localStorage.getItem('transponder-search-history');
+    const savedHistory = localStorage.getItem("transponder-search-history");
     if (savedHistory) {
       try {
         setSearchHistory(JSON.parse(savedHistory));
       } catch (error) {
-        console.error('Failed to parse search history:', error);
+        console.error("Failed to parse search history:", error);
       }
     }
   }, []);
@@ -546,13 +761,15 @@ export default function VehicleTransponderSearch() {
   const SearchField = () => (
     <div className="flex-1 relative">
       <div className="flex gap-2">
-        <Combobox 
-          value={searchQuery} 
+        <Combobox
+          value={searchQuery}
           onChange={(value: string) => {
             setSearchQuery(value);
             handleSearchSelection(value);
             if (value) {
-              const suggestion = generateSuggestions.find(s => s.value === value);
+              const suggestion = generateSuggestions.find(
+                (s) => s.value === value
+              );
               if (suggestion) {
                 addToSearchHistory(value, suggestion.type);
               }
@@ -561,22 +778,27 @@ export default function VehicleTransponderSearch() {
         >
           <div className="relative w-full">
             <div className="relative">
-              <Search className={`absolute left-3 top-2.5 h-5 w-5 ${
-                isLoadingSuggestions ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400'
-              }`} />
+              <Search
+                className={`absolute left-3 top-2.5 h-5 w-5 ${
+                  isLoadingSuggestions
+                    ? "text-blue-500 dark:text-blue-400"
+                    : "text-gray-400"
+                }`}
+              />
               <Combobox.Input
                 className="pl-10 pr-10 py-2 w-full border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
                 placeholder="Search makes, models, or transponders..."
                 onChange={(event) => {
-                  setSearchQuery(event.target.value);
-                  handleSearch(event.target.value);
+                  const value = event.target.value;
+                  setSearchQuery(value);
+                  handleSearch(value);
                 }}
                 value={searchQuery}
               />
               {searchQuery && (
                 <button
                   onClick={() => {
-                    setSearchQuery('');
+                    setSearchQuery("");
                     setSearchResults(null);
                   }}
                   className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -596,8 +818,8 @@ export default function VehicleTransponderSearch() {
                       className={({ selected }) =>
                         `px-3 py-1.5 text-sm rounded-md transition-colors ${
                           selected
-                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100'
-                            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100"
+                            : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                         }`
                       }
                     >
@@ -629,20 +851,28 @@ export default function VehicleTransponderSearch() {
                       key={suggestion.id}
                       className={({ active }) =>
                         `relative cursor-default select-none py-2 pl-10 pr-4 ${
-                          active 
-                            ? 'bg-blue-600 text-white dark:bg-blue-900 dark:text-blue-100' 
-                            : 'text-gray-900 dark:text-gray-100'
+                          active
+                            ? "bg-blue-600 text-white dark:bg-blue-900 dark:text-blue-100"
+                            : "text-gray-900 dark:text-gray-100"
                         }`
                       }
                       value={suggestion.value}
                     >
                       {({ selected, active }) => (
                         <>
-                          <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
+                          <span
+                            className={`block truncate ${
+                              selected ? "font-medium" : "font-normal"
+                            }`}
+                          >
                             {suggestion.value}
-                            <span className={`ml-2 text-sm ${
-                              active ? 'text-blue-100' : 'text-gray-400 dark:text-gray-500'
-                            }`}>
+                            <span
+                              className={`ml-2 text-sm ${
+                                active
+                                  ? "text-blue-100"
+                                  : "text-gray-400 dark:text-gray-500"
+                              }`}
+                            >
                               {suggestion.type}
                             </span>
                           </span>
@@ -660,9 +890,9 @@ export default function VehicleTransponderSearch() {
         <button
           onClick={() => setShowHistory(!showHistory)}
           className={`px-3 py-2 rounded-md border relative ${
-            showHistory 
-              ? 'bg-blue-50 border-blue-200 text-blue-600' 
-              : 'bg-white border-gray-200 text-gray-600'
+            showHistory
+              ? "bg-blue-50 border-blue-200 text-blue-600"
+              : "bg-white border-gray-200 text-gray-600"
           }`}
         >
           <Clock className="h-5 w-5" />
@@ -684,11 +914,13 @@ export default function VehicleTransponderSearch() {
             className="absolute z-20 w-full mt-1 bg-white dark:bg-gray-800 rounded-md shadow-lg border dark:border-gray-700"
           >
             <div className="p-2 border-b dark:border-gray-700 flex justify-between items-center">
-              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Recent Searches</h3>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                Recent Searches
+              </h3>
               <button
                 onClick={() => {
                   setSearchHistory([]);
-                  localStorage.removeItem('transponder-search-history');
+                  localStorage.removeItem("transponder-search-history");
                 }}
                 className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
               >
@@ -696,7 +928,7 @@ export default function VehicleTransponderSearch() {
               </button>
             </div>
             <div className="max-h-64 overflow-y-auto">
-              {searchHistory.map(item => (
+              {searchHistory.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => {
@@ -708,12 +940,16 @@ export default function VehicleTransponderSearch() {
                 >
                   <Clock className="h-4 w-4 text-gray-400" />
                   <div>
-                    <span className="text-gray-900 dark:text-gray-100">{item.query}</span>
+                    <span className="text-gray-900 dark:text-gray-100">
+                      {item.query}
+                    </span>
                     <span className="ml-2 text-xs text-gray-500">
                       {new Date(item.timestamp).toLocaleDateString()}
                     </span>
                   </div>
-                  <span className="ml-auto text-xs text-gray-500 capitalize">{item.type}</span>
+                  <span className="ml-auto text-xs text-gray-500 capitalize">
+                    {item.type}
+                  </span>
                 </button>
               ))}
             </div>
@@ -724,7 +960,13 @@ export default function VehicleTransponderSearch() {
   );
 
   // Add loading state components
-  const LoadingOverlay = ({ children, loading }: { children: React.ReactNode; loading: boolean }) => (
+  const LoadingOverlay = ({
+    children,
+    loading,
+  }: {
+    children: React.ReactNode;
+    loading: boolean;
+  }) => (
     <div className="relative">
       {loading && (
         <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 flex items-center justify-center z-10">
@@ -743,7 +985,11 @@ export default function VehicleTransponderSearch() {
   );
 
   // Enhanced results display component
-  const TransponderCard = ({ transponder }: { transponder: TransponderKeyData }) => (
+  const TransponderCard = ({
+    transponder,
+  }: {
+    transponder: TransponderKeyData;
+  }) => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -766,7 +1012,7 @@ export default function VehicleTransponderSearch() {
               {transponder.make} {transponder.model}
             </span>
             <span className="text-sm text-gray-400 dark:text-gray-500">
-              {transponder.yearStart} - {transponder.yearEnd || 'Present'}
+              {transponder.yearStart} - {transponder.yearEnd || "Present"}
             </span>
           </div>
         </div>
@@ -776,10 +1022,12 @@ export default function VehicleTransponderSearch() {
           </span>
         )}
       </div>
-      
+
       <div className="mt-3 space-y-2">
         <div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Chip Types:</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Chip Types:
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {transponder.chipType.map((chip) => (
               <span
@@ -792,21 +1040,24 @@ export default function VehicleTransponderSearch() {
           </div>
         </div>
 
-        {transponder.compatibleParts && transponder.compatibleParts.length > 0 && (
-          <div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Compatible Parts:</div>
-            <div className="flex flex-wrap gap-1.5">
-              {transponder.compatibleParts.map((part) => (
-                <span
-                  key={part}
-                  className="px-2 py-1 text-xs rounded bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-                >
-                  {part}
-                </span>
-              ))}
+        {transponder.compatibleParts &&
+          transponder.compatibleParts.length > 0 && (
+            <div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Compatible Parts:
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {transponder.compatibleParts.map((part) => (
+                  <span
+                    key={part}
+                    className="px-2 py-1 text-xs rounded bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                  >
+                    {part}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {transponder.notes && (
           <div className="mt-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50 p-2 rounded">
@@ -835,7 +1086,9 @@ export default function VehicleTransponderSearch() {
   // Add popular searches component
   const PopularSearches = () => (
     <div className="mt-2">
-      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Popular Searches</h4>
+      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+        Popular Searches
+      </h4>
       <div className="mt-1 flex flex-wrap gap-2">
         {popularSearches.map(({ query, count }) => (
           <button
@@ -866,13 +1119,16 @@ export default function VehicleTransponderSearch() {
 
         {/* Loading States Display */}
         <div className="space-y-1">
-          {Object.entries(loadingStates).map(([key, isLoading]) => 
-            isLoading && (
-              <LoadingIndicator 
-                key={key} 
-                message={`Loading ${key.charAt(0).toUpperCase() + key.slice(1)}...`} 
-              />
-            )
+          {Object.entries(loadingStates).map(
+            ([key, isLoading]) =>
+              isLoading && (
+                <LoadingIndicator
+                  key={key}
+                  message={`Loading ${
+                    key.charAt(0).toUpperCase() + key.slice(1)
+                  }...`}
+                />
+              )
           )}
         </div>
 
@@ -881,7 +1137,9 @@ export default function VehicleTransponderSearch() {
           {/* Show validation errors if any */}
           {validationErrors.length > 0 && (
             <div className="bg-yellow-50 dark:bg-yellow-900/30 p-4 rounded-lg">
-              <h4 className="text-yellow-800 dark:text-yellow-200 font-medium">Data Validation Warnings</h4>
+              <h4 className="text-yellow-800 dark:text-yellow-200 font-medium">
+                Data Validation Warnings
+              </h4>
               <ul className="mt-2 text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
                 {validationErrors.map((error, index) => (
                   <li key={index}>{error.message}</li>
@@ -904,9 +1162,9 @@ export default function VehicleTransponderSearch() {
               <button
                 onClick={() => setCompareMode(!compareMode)}
                 className={`px-4 py-2 flex items-center gap-2 border rounded-md ${
-                  compareMode 
-                    ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300 border-blue-300 dark:border-blue-700'
-                    : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  compareMode
+                    ? "bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300 border-blue-300 dark:border-blue-700"
+                    : "bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
                 }`}
               >
                 <SplitSquareHorizontal className="h-5 w-5" />
@@ -917,72 +1175,137 @@ export default function VehicleTransponderSearch() {
 
           {/* Filter Panel */}
           <AnimatePresence>
-            {showFilters && filters && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="bg-white dark:bg-gray-800 border rounded-lg p-4"
-              >
-                {/* Filter content */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Chip Types */}
-                  <div>
-                    <h4 className="font-medium mb-2">Chip Types</h4>
-                    <div className="space-y-2">
-                      {filters.chipTypes.map(chip => (
-                        <label key={chip} className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
-                          <span>{chip}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Frequencies */}
-                  <div>
-                    <h4 className="font-medium mb-2">Frequencies</h4>
-                    <div className="space-y-2">
-                      {filters.frequencies.map(freq => (
-                        <label key={freq} className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded" />
-                          <span>{freq}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Year Range */}
-                  <div>
-                    <h4 className="font-medium mb-2">Year Range</h4>
-                    <div className="space-y-4">
-                      <input
-                        type="range"
-                        min={filters.yearRange[0]}
-                        max={filters.yearRange[1]}
-                        className="w-full"
-                      />
-                      <div className="flex justify-between text-sm">
-                        <span>{filters.yearRange[0]}</span>
-                        <span>{filters.yearRange[1]}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
+            {showFilters && filters && <FilterPanel />}
           </AnimatePresence>
 
           {/* Selection Controls */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Make Selection */}
             <Listbox value={selectedMake} onChange={handleMakeChange}>
-              {/* ... Listbox implementation remains similar ... */}
+              <div className="relative">
+                <Listbox.Button className="relative w-full cursor-default rounded-lg bg-white dark:bg-gray-700 py-2 pl-3 pr-10 text-left border focus:outline-none focus-visible:border-blue-500 dark:focus-visible:border-blue-400">
+                  <span className="block truncate">
+                    {selectedMake ? selectedMake.MakeName : "Select Make"}
+                  </span>
+                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                    <ChevronDown
+                      className="h-5 w-5 text-gray-400"
+                      aria-hidden="true"
+                    />
+                  </span>
+                </Listbox.Button>
+                <Transition
+                  as={Fragment}
+                  leave="transition ease-in duration-100"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-700 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                    {makes.map((make) => (
+                      <Listbox.Option
+                        key={make.MakeId}
+                        className={({ active }) =>
+                          `relative cursor-default select-none py-2 pl-10 pr-4 ${
+                            active
+                              ? "bg-blue-600 text-white dark:bg-blue-900 dark:text-blue-100"
+                              : "text-gray-900 dark:text-gray-100"
+                          }`
+                        }
+                        value={make}
+                      >
+                        {({ selected, active }) => (
+                          <>
+                            <span
+                              className={`block truncate ${
+                                selected ? "font-medium" : "font-normal"
+                              }`}
+                            >
+                              {make.MakeName}
+                            </span>
+                            {selected ? (
+                              <span
+                                className={`absolute inset-y-0 left-0 flex items-center pl-3 ${
+                                  active
+                                    ? "text-white dark:text-blue-100"
+                                    : "text-blue-600 dark:text-blue-400"
+                                }`}
+                              >
+                                <Check className="h-5 w-5" aria-hidden="true" />
+                              </span>
+                            ) : null}
+                          </>
+                        )}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </Transition>
+              </div>
             </Listbox>
 
             {/* Model Selection */}
-            <Listbox value={selectedModel} onChange={handleModelChange} disabled={!selectedMake}>
-              {/* ... Listbox implementation remains similar ... */}
+            <Listbox
+              value={selectedModel}
+              onChange={handleModelChange}
+              disabled={!selectedMake}
+            >
+              <div className="relative">
+                <Listbox.Button className="relative w-full cursor-default rounded-lg bg-white dark:bg-gray-700 py-2 pl-3 pr-10 text-left border focus:outline-none focus-visible:border-blue-500 dark:focus-visible:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <span className="block truncate">
+                    {selectedModel ? selectedModel.ModelName : "Select Model"}
+                  </span>
+                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                    <ChevronDown
+                      className="h-5 w-5 text-gray-400"
+                      aria-hidden="true"
+                    />
+                  </span>
+                </Listbox.Button>
+                <Transition
+                  as={Fragment}
+                  leave="transition ease-in duration-100"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-700 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                    {models.map((model) => (
+                      <Listbox.Option
+                        key={model.ModelId}
+                        className={({ active }) =>
+                          `relative cursor-default select-none py-2 pl-10 pr-4 ${
+                            active
+                              ? "bg-blue-600 text-white dark:bg-blue-900 dark:text-blue-100"
+                              : "text-gray-900 dark:text-gray-100"
+                          }`
+                        }
+                        value={model}
+                      >
+                        {({ selected, active }) => (
+                          <>
+                            <span
+                              className={`block truncate ${
+                                selected ? "font-medium" : "font-normal"
+                              }`}
+                            >
+                              {model.ModelName}
+                            </span>
+                            {selected ? (
+                              <span
+                                className={`absolute inset-y-0 left-0 flex items-center pl-3 ${
+                                  active
+                                    ? "text-white dark:text-blue-100"
+                                    : "text-blue-600 dark:text-blue-400"
+                                }`}
+                              >
+                                <Check className="h-5 w-5" aria-hidden="true" />
+                              </span>
+                            ) : null}
+                          </>
+                        )}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </Transition>
+              </div>
             </Listbox>
           </div>
         </LoadingOverlay>
@@ -997,8 +1320,11 @@ export default function VehicleTransponderSearch() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Feature
                     </th>
-                    {comparedTransponders.map(t => (
-                      <th key={t.id} className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {comparedTransponders.map((t) => (
+                      <th
+                        key={t.id}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                      >
                         {t.transponderType}
                       </th>
                     ))}
@@ -1010,9 +1336,12 @@ export default function VehicleTransponderSearch() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                       Chip Types
                     </td>
-                    {comparedTransponders.map(t => (
-                      <td key={t.id} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {t.chipType.join(', ')}
+                    {comparedTransponders.map((t) => (
+                      <td
+                        key={t.id}
+                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
+                      >
+                        {t.chipType.join(", ")}
                       </td>
                     ))}
                   </tr>
@@ -1034,11 +1363,14 @@ export default function VehicleTransponderSearch() {
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                   Compatible Transponders
                 </h3>
-                
+
                 {filteredResults.transponders.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {filteredResults.transponders.map((transponder) => (
-                      <TransponderCard key={transponder.id} transponder={transponder} />
+                      <TransponderCard
+                        key={transponder.id}
+                        transponder={transponder}
+                      />
                     ))}
                   </div>
                 ) : (
@@ -1053,4 +1385,4 @@ export default function VehicleTransponderSearch() {
       </div>
     </ErrorBoundary>
   );
-} 
+}

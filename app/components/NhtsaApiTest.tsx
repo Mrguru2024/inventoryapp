@@ -1,10 +1,21 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Check, AlertTriangle, ChevronDown, Loader2, KeyRound, RefreshCcw, Search, X } from 'lucide-react';
-import { Listbox, Transition } from '@headlessui/react';
-import { AnimatePresence, motion } from 'framer-motion';
-import debounce from 'lodash/debounce';
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  Check,
+  AlertTriangle,
+  ChevronDown,
+  Loader2,
+  KeyRound,
+  RefreshCcw,
+  Search,
+  X,
+} from "lucide-react";
+import { Listbox, Transition } from "@headlessui/react";
+import { AnimatePresence, motion } from "framer-motion";
+import debounce from "lodash/debounce";
+import { transponderService } from "@/app/services/transponderService";
+import type { TransponderData } from "@/app/services/transponderService";
 
 interface Make {
   MakeId: number;
@@ -22,19 +33,33 @@ interface ErrorDetails {
   retryCount: number;
 }
 
-const STORAGE_KEY = 'nhtsa-selection';
+interface TransponderInfo {
+  transponderType: string;
+  chipType: string[];
+  compatibleParts: string[];
+  frequency: string | null;
+  notes: string | null;
+  dualSystem: boolean;
+}
+
+const STORAGE_KEY = "nhtsa-selection";
 
 export default function NhtsaApiTest() {
   const [makes, setMakes] = useState<Make[]>([]);
   const [models, setModels] = useState<Model[]>([]);
   const [selectedMake, setSelectedMake] = useState<Make | null>(null);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
-  const [apiStatus, setApiStatus] = useState<'connected' | 'error'>('connected');
+  const [apiStatus, setApiStatus] = useState<"connected" | "error">(
+    "connected"
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [error, setError] = useState<ErrorDetails | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [retryCount, setRetryCount] = useState(0);
+  const [transponderInfo, setTransponderInfo] =
+    useState<TransponderInfo | null>(null);
+  const [isLoadingTransponder, setIsLoadingTransponder] = useState(false);
 
   useEffect(() => {
     const savedSelection = localStorage.getItem(STORAGE_KEY);
@@ -45,6 +70,7 @@ export default function NhtsaApiTest() {
         fetchModels(make.MakeName).then(() => {
           if (model) {
             setSelectedModel(model);
+            fetchTransponderInfo(make.MakeName, model.ModelName);
           }
         });
       }
@@ -53,10 +79,13 @@ export default function NhtsaApiTest() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      make: selectedMake,
-      model: selectedModel
-    }));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        make: selectedMake,
+        model: selectedModel,
+      })
+    );
   }, [selectedMake, selectedModel]);
 
   const debouncedSearch = useCallback(
@@ -73,40 +102,41 @@ export default function NhtsaApiTest() {
   };
 
   const clearSearch = () => {
-    setSearchTerm('');
-    const searchInput = document.querySelector<HTMLInputElement>('input[type="text"]');
+    setSearchTerm("");
+    const searchInput =
+      document.querySelector<HTMLInputElement>('input[type="text"]');
     if (searchInput) {
-      searchInput.value = '';
+      searchInput.value = "";
     }
   };
 
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       transition: {
         duration: 0.3,
-        staggerChildren: 0.1
-      }
-    }
+        staggerChildren: 0.1,
+      },
+    },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, x: -20 },
-    visible: { opacity: 1, x: 0 }
+    visible: { opacity: 1, x: 0 },
   };
 
   const filteredMakes = useMemo(() => {
     if (!searchTerm) return makes;
-    return makes.filter(make => 
+    return makes.filter((make) =>
       make.MakeName.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [makes, searchTerm]);
 
   const filteredModels = useMemo(() => {
     if (!searchTerm) return models;
-    return models.filter(model => 
+    return models.filter((model) =>
       model.ModelName.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [models, searchTerm]);
@@ -115,19 +145,22 @@ export default function NhtsaApiTest() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json');
+      const response = await fetch(
+        "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json"
+      );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
       setMakes(data.Results);
-      setApiStatus('connected');
+      setApiStatus("connected");
     } catch (error) {
-      setApiStatus('error');
+      setApiStatus("error");
       setError({
-        message: 'Failed to load vehicle makes',
-        details: error instanceof Error ? error.message : 'Unknown error occurred',
-        retryCount
+        message: "Failed to load vehicle makes",
+        details:
+          error instanceof Error ? error.message : "Unknown error occurred",
+        retryCount,
       });
     } finally {
       setIsLoading(false);
@@ -153,8 +186,9 @@ export default function NhtsaApiTest() {
       } else {
         setError({
           message: `Failed to load models for ${make}`,
-          details: error instanceof Error ? error.message : 'Unknown error occurred',
-          retryCount: retry
+          details:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          retryCount: retry,
         });
       }
     } finally {
@@ -162,13 +196,47 @@ export default function NhtsaApiTest() {
     }
   };
 
+  const fetchTransponderInfo = async (make: string, model: string) => {
+    setIsLoadingTransponder(true);
+    try {
+      const data = await transponderService.searchTransponders({
+        make: make.toUpperCase(),
+        model: model.toUpperCase(),
+      });
+
+      if (data && data.length > 0) {
+        const info = data[0];
+        setTransponderInfo({
+          transponderType: info.transponderType,
+          chipType: Array.isArray(info.chipType)
+            ? info.chipType
+            : [info.chipType],
+          compatibleParts: Array.isArray(info.compatibleParts)
+            ? info.compatibleParts
+            : [info.compatibleParts],
+          frequency: info.frequency,
+          notes: info.notes,
+          dualSystem: info.dualSystem,
+        });
+      } else {
+        setTransponderInfo(null);
+      }
+    } catch (error) {
+      console.error("Error fetching transponder info:", error);
+      setTransponderInfo(null);
+    } finally {
+      setIsLoadingTransponder(false);
+    }
+  };
+
   const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
+    setRetryCount((prev) => prev + 1);
   };
 
   const handleMakeChange = (make: Make | null) => {
     setSelectedMake(make);
     setSelectedModel(null);
+    setTransponderInfo(null);
     if (make) {
       fetchModels(make.MakeName);
     } else {
@@ -176,41 +244,54 @@ export default function NhtsaApiTest() {
     }
   };
 
+  const handleModelChange = (model: Model | null) => {
+    setSelectedModel(model);
+    if (model && selectedMake) {
+      fetchTransponderInfo(selectedMake.MakeName, model.ModelName);
+    } else {
+      setTransponderInfo(null);
+    }
+  };
+
   return (
-    <motion.div 
+    <motion.div
       className="space-y-6 p-4 sm:p-6 bg-white dark:bg-gray-800 rounded-lg shadow"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
       {/* API Status and Search */}
-      <motion.div 
+      <motion.div
         className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-700 gap-4"
         variants={itemVariants}
       >
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">NHTSA API Test</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            NHTSA API Test
+          </h2>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600 dark:text-gray-300">API Status:</span>
+            <span className="text-sm text-gray-600 dark:text-gray-300">
+              API Status:
+            </span>
             <motion.span
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className={`flex items-center ${
-                apiStatus === 'connected' 
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-red-600 dark:text-red-400'
+                apiStatus === "connected"
+                  ? "text-green-600 dark:text-green-400"
+                  : "text-red-600 dark:text-red-400"
               }`}
             >
-              {apiStatus === 'connected' ? (
+              {apiStatus === "connected" ? (
                 <Check className="w-4 h-4 mr-1" />
               ) : (
                 <AlertTriangle className="w-4 h-4 mr-1" />
               )}
-              {apiStatus === 'connected' ? 'Connected' : 'Error'}
+              {apiStatus === "connected" ? "Connected" : "Error"}
             </motion.span>
           </div>
         </div>
-        
+
         <div className="relative">
           <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           <input
@@ -240,21 +321,26 @@ export default function NhtsaApiTest() {
         {error && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
             className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"
           >
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-red-600 dark:text-red-400">{error.message}</p>
+                <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                  {error.message}
+                </p>
                 {error.details && (
-                  <p className="text-xs text-red-500 dark:text-red-300 mt-1">{error.details}</p>
+                  <p className="text-xs text-red-500 dark:text-red-300 mt-1">
+                    {error.details}
+                  </p>
                 )}
               </div>
               <button
                 onClick={handleRetry}
                 className="p-1 hover:bg-red-100 dark:hover:bg-red-800 rounded-md"
+                aria-label="Retry loading data"
               >
                 <RefreshCcw className="h-4 w-4 text-red-600 dark:text-red-400" />
               </button>
@@ -264,7 +350,7 @@ export default function NhtsaApiTest() {
       </AnimatePresence>
 
       {/* Keyboard Navigation Hint */}
-      <motion.div 
+      <motion.div
         variants={itemVariants}
         className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-2 rounded-md"
       >
@@ -273,7 +359,7 @@ export default function NhtsaApiTest() {
       </motion.div>
 
       {/* Selection Controls */}
-      <motion.div 
+      <motion.div
         variants={itemVariants}
         className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"
       >
@@ -287,13 +373,18 @@ export default function NhtsaApiTest() {
               <div className="relative">
                 <Listbox.Button className="relative w-full py-2 pl-3 pr-10 text-left bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:text-sm">
                   <span className="block truncate text-gray-900 dark:text-gray-100">
-                    {isLoading ? 'Loading...' : (selectedMake?.MakeName || 'Select Make')}
+                    {isLoading
+                      ? "Loading..."
+                      : selectedMake?.MakeName || "Select Make"}
                   </span>
                   <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                     {isLoading ? (
                       <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
                     ) : (
-                      <ChevronDown className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                      <ChevronDown
+                        className="h-5 w-5 text-gray-400"
+                        aria-hidden="true"
+                      />
                     )}
                   </span>
                 </Listbox.Button>
@@ -309,15 +400,22 @@ export default function NhtsaApiTest() {
                       <Listbox.Option
                         key={make.MakeId}
                         className={({ active }) =>
-                          `${active ? 'text-blue-900 dark:text-blue-100 bg-blue-100 dark:bg-blue-900' : 
-                            'text-gray-900 dark:text-gray-100'}
+                          `${
+                            active
+                              ? "text-blue-900 dark:text-blue-100 bg-blue-100 dark:bg-blue-900"
+                              : "text-gray-900 dark:text-gray-100"
+                          }
                             cursor-pointer select-none relative py-2 pl-10 pr-4`
                         }
                         value={make}
                       >
                         {({ selected, active }) => (
                           <>
-                            <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
+                            <span
+                              className={`block truncate ${
+                                selected ? "font-medium" : "font-normal"
+                              }`}
+                            >
                               {make.MakeName}
                             </span>
                             {selected && (
@@ -338,7 +436,11 @@ export default function NhtsaApiTest() {
 
         {/* Model Selection */}
         <div>
-          <Listbox value={selectedModel} onChange={setSelectedModel} disabled={!selectedMake || isLoadingModels}>
+          <Listbox
+            value={selectedModel}
+            onChange={handleModelChange}
+            disabled={!selectedMake || isLoadingModels}
+          >
             <div className="relative mt-1">
               <Listbox.Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Models
@@ -346,13 +448,18 @@ export default function NhtsaApiTest() {
               <div className="relative">
                 <Listbox.Button className="relative w-full py-2 pl-3 pr-10 text-left bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:text-sm disabled:opacity-50">
                   <span className="block truncate text-gray-900 dark:text-gray-100">
-                    {isLoadingModels ? 'Loading...' : (selectedModel?.ModelName || 'Select Model')}
+                    {isLoadingModels
+                      ? "Loading..."
+                      : selectedModel?.ModelName || "Select Model"}
                   </span>
                   <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                     {isLoadingModels ? (
                       <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
                     ) : (
-                      <ChevronDown className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                      <ChevronDown
+                        className="h-5 w-5 text-gray-400"
+                        aria-hidden="true"
+                      />
                     )}
                   </span>
                 </Listbox.Button>
@@ -368,15 +475,22 @@ export default function NhtsaApiTest() {
                       <Listbox.Option
                         key={model.ModelId}
                         className={({ active }) =>
-                          `${active ? 'text-blue-900 dark:text-blue-100 bg-blue-100 dark:bg-blue-900' : 
-                            'text-gray-900 dark:text-gray-100'}
+                          `${
+                            active
+                              ? "text-blue-900 dark:text-blue-100 bg-blue-100 dark:bg-blue-900"
+                              : "text-gray-900 dark:text-gray-100"
+                          }
                             cursor-pointer select-none relative py-2 pl-10 pr-4`
                         }
                         value={model}
                       >
                         {({ selected, active }) => (
                           <>
-                            <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
+                            <span
+                              className={`block truncate ${
+                                selected ? "font-medium" : "font-normal"
+                              }`}
+                            >
                               {model.ModelName}
                             </span>
                             {selected && (
@@ -397,11 +511,13 @@ export default function NhtsaApiTest() {
       </motion.div>
 
       {/* Status Info */}
-      <motion.div 
+      <motion.div
         variants={itemVariants}
         className="mt-4 text-sm text-gray-600 dark:text-gray-400 flex items-center justify-between"
       >
-        <span>Loaded {makes.length} makes and {models.length} models</span>
+        <span>
+          Loaded {makes.length} makes and {models.length} models
+        </span>
         {(isLoading || isLoadingModels) && (
           <span className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -409,6 +525,78 @@ export default function NhtsaApiTest() {
           </span>
         )}
       </motion.div>
+
+      {/* Transponder Information */}
+      {selectedMake && selectedModel && (
+        <motion.div
+          variants={itemVariants}
+          className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+        >
+          <h3 className="text-lg font-semibold mb-4">
+            Transponder Information
+          </h3>
+          {isLoadingTransponder ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Loading transponder data...</span>
+            </div>
+          ) : transponderInfo ? (
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium">Type</h4>
+                <p>{transponderInfo.transponderType}</p>
+              </div>
+              <div>
+                <h4 className="font-medium">Chip Types</h4>
+                <div className="flex flex-wrap gap-2">
+                  {transponderInfo.chipType.map((chip, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 bg-gray-200 dark:bg-gray-600 rounded text-sm"
+                    >
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h4 className="font-medium">Compatible Parts</h4>
+                <div className="flex flex-wrap gap-2">
+                  {transponderInfo.compatibleParts.map((part, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 bg-gray-200 dark:bg-gray-600 rounded text-sm"
+                    >
+                      {part}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {transponderInfo.frequency && (
+                <div>
+                  <h4 className="font-medium">Frequency</h4>
+                  <p>{transponderInfo.frequency}</p>
+                </div>
+              )}
+              {transponderInfo.notes && (
+                <div>
+                  <h4 className="font-medium">Notes</h4>
+                  <p>{transponderInfo.notes}</p>
+                </div>
+              )}
+              {transponderInfo.dualSystem && (
+                <div className="text-sm text-blue-600 dark:text-blue-400">
+                  Dual System Transponder
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400">
+              No transponder data available
+            </p>
+          )}
+        </motion.div>
+      )}
     </motion.div>
   );
-} 
+}

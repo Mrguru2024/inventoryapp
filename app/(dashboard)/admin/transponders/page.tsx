@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import TransponderManagement from "@/app/components/TransponderManagement";
-import QueryClientWrapper from "@/app/components/QueryClientWrapper";
+import { QueryClientWrapper } from "@/app/components/QueryClientWrapper";
 
 export default async function TranspondersPage() {
   const session = await getServerSession(authOptions);

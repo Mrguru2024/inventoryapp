@@ -1,21 +1,17 @@
-import { prisma } from '@/lib/prisma';
-import { withRetry } from '@/app/utils/retry';
-import logger from '@/app/utils/logger';
-import axios from 'axios';
+import axios from "axios";
 
 export interface TransponderKeyData {
-  id?: string;
+  id: string;
   make: string;
   model: string;
-  yearStart: number;
-  yearEnd?: number;
+  yearStart: number | null;
+  yearEnd: number | null;
   transponderType: string;
-  chipType: string[] | string;
-  compatibleParts?: string[] | string;
-  notes?: string;
-  vatsEnabled?: boolean;
-  vatsSystem?: string;
-  dualSystem?: boolean;
+  chipType: string[];
+  compatibleParts: string[];
+  frequency: string | null;
+  notes: string | null;
+  dualSystem: boolean;
 }
 
 export interface TransponderData {
@@ -33,96 +29,131 @@ export interface TransponderData {
   dualSystem: boolean;
 }
 
+export interface TransponderSearchParams {
+  search?: string;
+  make?: string;
+  model?: string;
+  year?: string;
+  type?: string;
+}
+
 export const transponderService = {
-  async getTransponderByVehicle(make: string, model: string, year: number) {
-    const transponder = await prisma.transponderKey.findFirst({
-      where: {
-        make: make.toUpperCase(),
-        model: model.toUpperCase(),
-        yearStart: { lte: year },
-        OR: [
-          { yearEnd: null },
-          { yearEnd: { gte: year } }
-        ]
-      }
-    });
-    return transponder;
-  },
+  async searchTransponders(params: TransponderSearchParams = {}) {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params.search) queryParams.append("q", params.search);
+      if (params.make) queryParams.append("make", params.make);
+      if (params.model) queryParams.append("model", params.model);
+      if (params.year) queryParams.append("year", params.year);
+      if (params.type) queryParams.append("type", params.type);
 
-  async addTransponderData(data: TransponderKeyData) {
-    return await prisma.transponderKey.create({
-      data: {
-        ...data,
-        make: data.make.toUpperCase(),
-        model: data.model.toUpperCase()
-      }
-    });
-  },
+      const queryString = queryParams.toString();
+      const url = `/api/transponders/search${
+        queryString ? `?${queryString}` : ""
+      }`;
 
-  async getCompatibleChips(make: string, model: string, year: number) {
-    const transponder = await this.getTransponderByVehicle(make, model, year);
-    if (!transponder) return [];
-
-    const chips = [...transponder.chipType];
-    if (transponder.dualSystem && transponder.alternateChipType) {
-      chips.push(...transponder.alternateChipType);
+      const response = await axios.get(url);
+      return response.data;
+    } catch (error) {
+      console.error("Error searching transponders:", error);
+      throw new Error("Failed to search transponder data");
     }
-    return chips;
-  }
+  },
+
+  async getTransponderByVehicle(make: string, model: string, year: number) {
+    try {
+      const response = await axios.get(`/api/transponders/vehicle`, {
+        params: { make, model, year },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error getting transponder by vehicle:", error);
+      throw new Error("Failed to get transponder data");
+    }
+  },
+
+  async addTransponderData(data: Omit<TransponderKeyData, "id">) {
+    try {
+      const response = await axios.post("/api/transponders", data);
+      return response.data;
+    } catch (error) {
+      console.error("Error adding transponder data:", error);
+      throw new Error("Failed to add transponder data");
+    }
+  },
+
+  async getCompatibleChips(transponderId: string) {
+    try {
+      const response = await axios.get(
+        `/api/transponders/${transponderId}/chips`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error getting compatible chips:", error);
+      throw new Error("Failed to get compatible chips");
+    }
+  },
 };
 
 export async function getTransponders() {
   try {
-    const response = await axios.get('/api/transponders');
+    const response = await axios.get("/api/transponders");
     return response.data;
   } catch (error) {
-    console.error('API error:', error);
-    throw new Error('Failed to fetch transponder data');
+    console.error("API error:", error);
+    throw new Error("Failed to fetch transponder data");
   }
 }
 
-export async function getTransponderByVehicle(make: string, model: string, year: number) {
+export async function getTransponderByVehicle(
+  make: string,
+  model: string,
+  year: number
+) {
   try {
-    const response = await axios.get(`/api/transponders/vehicle?make=${make}&model=${model}&year=${year}`);
+    const response = await axios.get(
+      `/api/transponders/vehicle?make=${make}&model=${model}&year=${year}`
+    );
     return response.data;
   } catch (error) {
-    console.error('API error:', error);
-    throw new Error('Failed to fetch vehicle transponder data');
+    console.error("API error:", error);
+    throw new Error("Failed to fetch vehicle transponder data");
   }
 }
 
-export async function getTransponderData(): Promise<TransponderKeyData[]> {
+export const getTransponderData = async (): Promise<TransponderKeyData[]> => {
   try {
-    const response = await axios.get('/api/transponders');
+    const response = await axios.get("/api/transponders");
     return response.data;
   } catch (error) {
-    console.error('API error:', error);
-    throw new Error('Failed to fetch transponder data');
+    console.error("API error:", error);
+    throw new Error("Failed to fetch transponder data");
   }
-}
+};
 
-export async function searchTransponders(searchTerm: string = ''): Promise<TransponderData[]> {
+export async function searchTransponders(
+  searchTerm: string = ""
+): Promise<TransponderKeyData[]> {
   try {
-    const response = await fetch(`/api/transponders${searchTerm ? `?search=${searchTerm}` : ''}`);
-    
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
-    const data = await response.json();
-    return data;
+    const response = await axios.get(
+      `/api/transponders/search?q=${encodeURIComponent(searchTerm)}`
+    );
+    return response.data;
   } catch (error) {
-    console.error('Error fetching transponders:', error);
-    return [];
+    console.error("API error:", error);
+    throw new Error("Failed to search transponders");
   }
 }
 
 // Helper function to safely parse JSON
-function tryParseJSON<T>(jsonString: string | null | undefined, defaultValue: T): T {
+function tryParseJSON<T>(
+  jsonString: string | null | undefined,
+  defaultValue: T
+): T {
   if (!jsonString) return defaultValue;
   try {
     return JSON.parse(jsonString);
-  } catch (error) {
-    console.error('Error parsing JSON:', jsonString, error);
+  } catch {
     return defaultValue;
   }
-} 
+}

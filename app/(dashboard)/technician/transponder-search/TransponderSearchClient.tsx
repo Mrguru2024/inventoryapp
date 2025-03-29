@@ -34,18 +34,6 @@ function ErrorState({ error }: { error: Error }) {
   );
 }
 
-function TransponderSearchWithData() {
-  const { data, isLoading, error } = useTransponderData();
-
-  if (isLoading) return <LoadingState />;
-  if (error) return <ErrorState error={error as Error} />;
-  if (!data) {
-    return <ErrorState error={new Error("No transponder data available")} />;
-  }
-
-  return <TransponderSearch transponderData={data} />;
-}
-
 export default function TransponderSearchClient() {
   return (
     <QueryClientProvider client={queryClient}>

@@ -72,8 +72,8 @@ export default function ManageTransponders() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold">Manage Transponders</h1>
         <button
           onClick={() => setIsAddModalOpen(true)}
@@ -84,7 +84,7 @@ export default function ManageTransponders() {
         </button>
       </div>
 
-      <div className="mb-4">
+      <div className="w-full sm:w-96">
         <input
           type="text"
           placeholder="Search transponders..."
@@ -148,7 +148,7 @@ export default function ManageTransponders() {
         </div>
       </div>
 
-      <div className="mt-4 text-sm text-gray-500">
+      <div className="text-sm text-gray-500">
         Showing {filteredTransponders.length} of {transponders.length}{" "}
         transponders
       </div>

@@ -1,73 +1,28 @@
-import { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { prisma } from "@/lib/prisma";
-import { compare } from "bcryptjs";
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "./auth.config";
 
-export const authOptions: NextAuthOptions = {
-  session: {
-    strategy: "jwt",
-  },
-  pages: {
-    signIn: "/auth/login",
-  },
-  providers: [
-    CredentialsProvider({
-      name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
+type Handler = (
+  request: Request,
+  params: { params: { [key: string]: string } }
+) => Promise<NextResponse>;
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email,
-          },
-        });
+export function withRoleCheck(handler: Handler, requiredRole: string) {
+  return async (
+    request: Request,
+    params: { params: { [key: string]: string } }
+  ) => {
+    const session = await getServerSession(authOptions);
 
-        if (!user) {
-          return null;
-        }
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-        const isPasswordValid = await compare(
-          credentials.password,
-          user.password
-        );
+    const userRole = (session.user as any).role;
+    if (userRole !== requiredRole) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: String(user.id),
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
-      },
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        return {
-          ...token,
-          role: user.role,
-        };
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          role: token.role,
-        },
-      };
-    },
-  },
-};
+    return handler(request, params);
+  };
+}

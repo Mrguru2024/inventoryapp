@@ -1,98 +1,74 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
-import { tryParseJSON } from "../../../lib/utils";
+import { NextRequest, NextResponse } from "next/server";
+import { TransponderFilters } from "@/app/lib/domain/value-objects";
+import { prisma } from "@/app/lib/prisma";
 
-interface TransponderData {
-  id: number;
-  make: string;
-  model: string;
-  yearStart: number | null;
-  yearEnd: number | null;
-  transponderType: string;
-  chipType: string[];
-  compatibleParts: string[];
-  frequency: string | null;
-  notes: string | null;
-  dualSystem: boolean;
-}
-
-export async function GET(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search");
-    const make = searchParams.get("make");
-    const model = searchParams.get("model");
-    const year = searchParams.get("year");
-    const type = searchParams.get("type");
+    const filters: TransponderFilters = await request.json();
 
-    const whereClause: any = {};
+    // Build the where clause for Prisma
+    const where: any = {};
 
-    if (search) {
-      whereClause.OR = [
-        { make: { contains: search.toUpperCase() } },
-        { model: { contains: search.toUpperCase() } },
-        { transponderType: { contains: search.toUpperCase() } },
-        { chipType: { contains: search.toUpperCase() } },
-        { compatibleParts: { contains: search.toUpperCase() } },
+    if (filters.make) {
+      where.make = filters.make.name.toUpperCase();
+    }
+
+    if (filters.model) {
+      where.model = filters.model.name.toUpperCase();
+    }
+
+    if (filters.year) {
+      const year = parseInt(filters.year);
+      where.OR = [
+        { yearStart: { lte: year } },
+        { yearEnd: { gte: year } },
+        { yearStart: { lte: year }, yearEnd: null },
       ];
     }
 
-    if (make) {
-      whereClause.make = { equals: make.toUpperCase() };
+    if (filters.transponderType) {
+      where.transponderType = filters.transponderType.code;
     }
 
-    if (model) {
-      whereClause.model = { equals: model.toUpperCase() };
-    }
-
-    if (year) {
-      const yearNum = parseInt(year);
-      whereClause.AND = [
-        { yearStart: { lte: yearNum } },
-        {
-          OR: [{ yearEnd: { gte: yearNum } }, { yearEnd: null }],
-        },
-      ];
-    }
-
-    if (type) {
-      whereClause.transponderType = { equals: type.toUpperCase() };
-    }
-
+    // Query the database
     const transponders = await prisma.transponderKey.findMany({
-      where: whereClause,
+      where,
       orderBy: [{ make: "asc" }, { model: "asc" }, { yearStart: "desc" }],
     });
 
-    // Transform the data
-    const formattedTransponders: TransponderData[] = transponders.map(
-      (transponder) => ({
-        id: transponder.id,
-        make: transponder.make,
-        model: transponder.model,
-        yearStart: transponder.yearStart,
-        yearEnd: transponder.yearEnd,
-        transponderType: transponder.transponderType,
-        chipType: tryParseJSON(transponder.chipType),
-        compatibleParts: tryParseJSON(transponder.compatibleParts),
-        frequency: transponder.frequency,
-        notes: transponder.notes,
-        dualSystem: transponder.dualSystem,
-      })
-    );
+    // Transform the data to match the expected format
+    const transformedTransponders = transponders.map((t) => ({
+      id: t.id.toString(),
+      make: { id: t.id, name: t.make },
+      model: { id: t.id, name: t.model, makeId: t.id },
+      yearStart: t.yearStart,
+      yearEnd: t.yearEnd,
+      transponderType: t.transponderType,
+      chipTypes: t.chipType as string[],
+      compatibleParts: t.compatibleParts as string[],
+      frequency: t.frequency,
+      notes: t.notes,
+      dualSystem: t.dualSystem,
+    }));
 
-    // Log the number of unique manufacturers found
-    const uniqueManufacturers = Array.from(
-      new Set(formattedTransponders.map((t: TransponderData) => t.make))
-    );
-    console.log(
-      `Found ${
-        uniqueManufacturers.length
-      } unique manufacturers: ${uniqueManufacturers.join(", ")}`
-    );
+    // Apply text search if searchTerm is provided
+    let filteredTransponders = transformedTransponders;
+    if (filters.searchTerm) {
+      const searchTerm = filters.searchTerm.toLowerCase();
+      filteredTransponders = transformedTransponders.filter(
+        (t) =>
+          t.make.name.toLowerCase().includes(searchTerm) ||
+          t.model.name.toLowerCase().includes(searchTerm) ||
+          t.transponderType.toLowerCase().includes(searchTerm) ||
+          t.chipTypes.some((chip) => chip.toLowerCase().includes(searchTerm)) ||
+          t.compatibleParts.some((part) =>
+            part.toLowerCase().includes(searchTerm)
+          ) ||
+          (t.notes && t.notes.toLowerCase().includes(searchTerm))
+      );
+    }
 
-    return NextResponse.json(formattedTransponders);
+    return NextResponse.json(filteredTransponders);
   } catch (error) {
     console.error("Error searching transponders:", error);
     return NextResponse.json(

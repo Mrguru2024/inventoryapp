@@ -32,26 +32,26 @@ interface NhtsaYear {
 }
 
 // Fallback data for makes
-const FALLBACK_MAKES = [
-  "ACURA",
-  "AUDI",
-  "BMW",
-  "CHEVROLET",
-  "DODGE",
-  "FORD",
-  "HONDA",
-  "HYUNDAI",
-  "INFINITI",
-  "KIA",
-  "LEXUS",
-  "MAZDA",
-  "MERCEDES-BENZ",
-  "NISSAN",
-  "PORSCHE",
-  "SUBARU",
-  "TOYOTA",
-  "VOLKSWAGEN",
-  "VOLVO",
+const FALLBACK_MAKES: NhtsaMake[] = [
+  { Make_ID: 1, Make_Name: "ACURA" },
+  { Make_ID: 2, Make_Name: "AUDI" },
+  { Make_ID: 3, Make_Name: "BMW" },
+  { Make_ID: 4, Make_Name: "CHEVROLET" },
+  { Make_ID: 5, Make_Name: "DODGE" },
+  { Make_ID: 6, Make_Name: "FORD" },
+  { Make_ID: 7, Make_Name: "HONDA" },
+  { Make_ID: 8, Make_Name: "HYUNDAI" },
+  { Make_ID: 9, Make_Name: "INFINITI" },
+  { Make_ID: 10, Make_Name: "KIA" },
+  { Make_ID: 11, Make_Name: "LEXUS" },
+  { Make_ID: 12, Make_Name: "MAZDA" },
+  { Make_ID: 13, Make_Name: "MERCEDES-BENZ" },
+  { Make_ID: 14, Make_Name: "NISSAN" },
+  { Make_ID: 15, Make_Name: "PORSCHE" },
+  { Make_ID: 16, Make_Name: "SUBARU" },
+  { Make_ID: 17, Make_Name: "TOYOTA" },
+  { Make_ID: 18, Make_Name: "VOLKSWAGEN" },
+  { Make_ID: 19, Make_Name: "VOLVO" },
 ];
 
 // Fallback data for models by make
@@ -254,34 +254,23 @@ export function useNhtsaData({ make, model }: UseNhtsaDataProps = {}) {
   const [error, setError] = useState<string | null>(null);
 
   // Fetch makes
-  useEffect(() => {
-    const fetchMakes = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const data = await fetchWithFallback(
-          "/api/nhtsa?endpoint=getallmakes",
-          {
-            Results: FALLBACK_MAKES.map((make) => ({
-              Make_ID: 0,
-              Make_Name: make,
-            })),
-          }
-        );
-        setMakes(data.Results || []);
-      } catch (error) {
-        console.error("Error fetching makes:", error);
-        setError("Failed to fetch makes");
-        setMakes(
-          FALLBACK_MAKES.map((make) => ({ Make_ID: 0, Make_Name: make }))
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const { data: makesData } = useQuery({
+    queryKey: ["makes"],
+    queryFn: async () => {
+      const response = await fetchWithFallback(
+        "/api/nhtsa?endpoint=getallmakes",
+        { Results: FALLBACK_MAKES, Count: FALLBACK_MAKES.length }
+      );
+      return response.Results;
+    },
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+  });
 
-    fetchMakes();
-  }, []);
+  useEffect(() => {
+    if (makesData) {
+      setMakes(makesData);
+    }
+  }, [makesData]);
 
   // Fetch models when make is selected
   useEffect(() => {

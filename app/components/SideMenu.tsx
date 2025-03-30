@@ -15,6 +15,7 @@ import {
   DatabaseIcon,
   SearchIcon,
   type LucideIcon,
+  MessageSquare,
 } from "lucide-react";
 
 // Define interfaces for our menu items
@@ -68,6 +69,13 @@ const menuItems: MenuItem[] = [
     icon: UsersIcon,
     href: "/admin/users",
     color: "text-purple-500",
+    requiredRole: UserRole.ADMIN,
+  },
+  {
+    label: "Chat Dashboard",
+    icon: MessageSquare,
+    href: "/admin/chat",
+    color: "text-gray-500",
     requiredRole: UserRole.ADMIN,
   },
   {

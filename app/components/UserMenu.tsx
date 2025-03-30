@@ -12,7 +12,7 @@ export function UserMenu() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => signOut({ callbackUrl: "/login" })}
+        onClick={() => signOut({ callbackUrl: "/" })}
         className="flex items-center gap-2"
       >
         <LogOut className="h-4 w-4" />

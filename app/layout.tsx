@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/app/components/Providers";
+import ChatWidget from "./components/ChatWidget";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body className={inter.className} suppressHydrationWarning>
         <Providers>
           <main className="min-h-screen bg-background">{children}</main>
+          <ChatWidget />
         </Providers>
       </body>
     </html>

@@ -22,11 +22,54 @@ import { landRoverTransponderData } from "./seeds/landRoverTransponders";
 import { dodgeTransponderData } from "./seeds/dodgeTransponders";
 import { transponderUpdates2022 } from "./seeds/transponderUpdates2022";
 import { buickTransponderData } from "./seeds/buickTransponders";
+import { FccService } from "../app/services/fccService";
+import { KeyDataService } from "../app/services/keyDataService";
 
 const prisma = new PrismaClient();
 
+// Define types for seed data and key data
+interface TransponderSeedData {
+  make: string;
+  model: string;
+  yearStart: number;
+  yearEnd: number | null;
+  transponderType: string;
+  chipType: string[] | string;
+  compatibleParts: string[] | string;
+  frequency: string | null;
+  notes: string | null;
+  dualSystem: boolean;
+  fccId?: string; // Optional fccId
+}
+
+interface KeyData {
+  make: string;
+  model: string;
+  year: number;
+  fccId: string;
+  frequency: string;
+  chipType: string[];
+  transponderType: string;
+  compatibleParts: string[];
+  notes?: string;
+  source: string;
+  price?: number;
+  sku?: string;
+}
+
+function generateFccId(make: string, model: string, year: number): string {
+  // Create a unique FCC ID based on make, model, and year
+  const prefix = make.substring(0, 3).toUpperCase();
+  const modelCode = model.substring(0, 2).toUpperCase();
+  const yearCode = year.toString().substring(2);
+  const randomCode = Math.random().toString(36).substring(2, 5).toUpperCase();
+  return `${prefix}${modelCode}${yearCode}${randomCode}`;
+}
+
 async function main() {
   console.log("Starting seed process...");
+  const fccService = FccService.getInstance();
+  const keyDataService = KeyDataService.getInstance();
 
   try {
     // Create admin user
@@ -73,7 +116,7 @@ async function main() {
     await prisma.transponderKey.deleteMany();
 
     // Seed all transponder data
-    const allTransponderData = [
+    const allTransponderData: TransponderSeedData[] = [
       ...bmwTransponderData,
       ...toyotaTransponderData,
       ...hondaTransponderData,
@@ -113,6 +156,85 @@ async function main() {
 
     for (const data of allTransponderData) {
       try {
+        // Always fetch key data from multiple sources for the most up-to-date information
+        console.log(
+          `Fetching key data for ${data.make} ${data.model} ${data.yearStart}...`
+        );
+        let keyDataList: KeyData[] = [];
+
+        try {
+          // Attempt to fetch data from external services
+          keyDataList = await keyDataService.getKeyData(
+            data.make,
+            data.model,
+            data.yearStart
+          );
+          console.log(
+            `Found ${keyDataList.length} key data entries for ${data.make} ${data.model}`
+          );
+        } catch (error) {
+          console.error(
+            `Error fetching key data for ${data.make} ${data.model}:`,
+            error
+          );
+          // Continue with empty keyDataList if fetch fails
+        }
+
+        // Generate a default FCC ID if none exists in the data
+        const defaultFccId = generateFccId(
+          data.make,
+          data.model,
+          data.yearStart
+        );
+
+        // Use the first matching key data or fall back to original data
+        const keyData: KeyData =
+          keyDataList.length > 0
+            ? keyDataList[0]
+            : {
+                make: data.make,
+                model: data.model,
+                year: data.yearStart,
+                fccId: data.fccId || defaultFccId,
+                frequency: data.frequency || "",
+                chipType: Array.isArray(data.chipType)
+                  ? data.chipType
+                  : typeof data.chipType === "string"
+                  ? data.chipType.split(",").map((c) => c.trim())
+                  : [],
+                transponderType: data.transponderType,
+                compatibleParts: Array.isArray(data.compatibleParts)
+                  ? data.compatibleParts
+                  : typeof data.compatibleParts === "string"
+                  ? data.compatibleParts.split(",").map((p) => p.trim())
+                  : [],
+                notes: data.notes || undefined,
+                source: "Default Generated Data",
+                price: 89.99,
+                sku: `${data.make.substring(0, 3)}${data.model.substring(
+                  0,
+                  3
+                )}${data.yearStart}`,
+              };
+
+        // Ensure chipType and compatibleParts are properly formatted for storage
+        const chipTypeString = Array.isArray(keyData.chipType)
+          ? keyData.chipType.join(", ")
+          : typeof keyData.chipType === "string"
+          ? keyData.chipType
+          : "";
+
+        const compatiblePartsString = Array.isArray(keyData.compatibleParts)
+          ? keyData.compatibleParts.join(", ")
+          : typeof keyData.compatibleParts === "string"
+          ? keyData.compatibleParts
+          : "";
+
+        // Create the transponder key with robust error handling
+        console.log(
+          `Creating transponder key for ${data.make} ${data.model} with FCC ID: ${keyData.fccId}`
+        );
+
         const transponderKey = await prisma.transponderKey.create({
           data: {
             make: data.make.toUpperCase(),
@@ -120,11 +242,12 @@ async function main() {
             yearStart: data.yearStart,
             yearEnd: data.yearEnd,
             transponderType: data.transponderType,
-            chipType: data.chipType,
-            compatibleParts: data.compatibleParts,
-            frequency: data.frequency,
-            notes: data.notes,
-            dualSystem: data.dualSystem,
+            chipType: chipTypeString,
+            compatibleParts: compatiblePartsString,
+            frequency: keyData.frequency || data.frequency || null,
+            notes: keyData.notes || data.notes || null,
+            dualSystem: data.dualSystem || false,
+            fccId: keyData.fccId,
           },
         });
 
@@ -132,7 +255,7 @@ async function main() {
         await prisma.transponderInventory.create({
           data: {
             transponderKeyId: transponderKey.id,
-            quantity: Math.floor(Math.random() * 10) + 1, // Random quantity between 1-10
+            quantity: Math.floor(Math.random() * 10) + 1,
             minimumStock: 5,
             location: "Main Warehouse",
             supplier: `${data.make} Parts`,
@@ -141,10 +264,14 @@ async function main() {
           },
         });
 
-        // Create inventory item
-        const sku = `${data.make.substring(0, 3)}${data.model.substring(0, 3)}${
-          data.yearStart
-        }`;
+        // Update inventory item with key data
+        const sku =
+          keyData.sku ||
+          `${data.make.substring(0, 3)}${data.model.substring(0, 3)}${
+            data.yearStart
+          }`;
+        const price = keyData.price || 89.99;
+
         await prisma.inventory.upsert({
           where: { sku },
           update: {},
@@ -154,12 +281,9 @@ async function main() {
             model: `${data.model} Smart Key`,
             stockCount: 15,
             lowStockThreshold: 5,
-            price: 89.99,
-            fccId: `FCC${Math.random()
-              .toString(36)
-              .substring(7)
-              .toUpperCase()}`,
-            frequency: data.frequency,
+            price,
+            fccId: keyData.fccId,
+            frequency: keyData.frequency || data.frequency || null,
             purchaseSource: `${data.make} Parts`,
             isSmartKey: true,
             isTransponderKey: true,

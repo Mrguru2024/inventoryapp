@@ -12,7 +12,7 @@ type NotificationsRouteContext = {
 async function handler(req: NextRequest, context: NotificationsRouteContext) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -34,4 +34,7 @@ async function handler(req: NextRequest, context: NotificationsRouteContext) {
   }
 }
 
-export const GET = withRoleCheck(handler, [UserRole.ADMIN, UserRole.TECHNICIAN]);
+export const GET = withRoleCheck(handler, [
+  UserRole.ADMIN,
+  UserRole.TECHNICIAN,
+]);

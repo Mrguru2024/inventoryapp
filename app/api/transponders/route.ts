@@ -29,44 +29,82 @@ export async function GET(request: Request) {
     const model = searchParams.get("model");
     const year = searchParams.get("year");
     const transponderType = searchParams.get("transponderType");
-    const search = searchParams.get("search");
 
-    // Build where clause based on search parameters
-    const where: any = {};
-    if (search) {
-      where.OR = [
-        {
-          make: {
-            contains: search,
-          },
-        },
-        {
-          model: {
-            contains: search,
-          },
-        },
-        {
-          transponderType: {
-            contains: search,
-          },
-        },
-      ];
+    console.log("API Request params:", { make, model, year, transponderType });
+
+    // If no search parameters provided, return limited results
+    if (!make && !model && !year && !transponderType) {
+      console.log("No search parameters provided, returning limited results");
+      const allTransponders = await prisma.transponderKey.findMany({
+        orderBy: [{ make: "asc" }, { model: "asc" }, { yearStart: "desc" }],
+        take: 100, // Limit results when no filters applied
+      });
+
+      // Transform the data to handle both string and array formats
+      const transformedTransponders = allTransponders.map(
+        transformTransponderData
+      );
+      console.log(
+        `Returning ${transformedTransponders.length} transponders (no filters)`
+      );
+      return NextResponse.json(transformedTransponders);
     }
-    if (make) where.make = make;
-    if (model) where.model = model;
-    if (year) where.yearStart = parseInt(year);
-    if (transponderType) where.transponderType = transponderType;
 
-    // Fetch transponders with filtering
-    const transponders = await prisma.transponderKey.findMany({
-      where,
-      take: 100, // Limit results to 100
-      orderBy: {
-        make: "asc",
-      },
+    // Build Prisma where condition for exact matches with case insensitivity
+    const whereCondition: Prisma.TransponderKeyWhereInput = {};
+
+    if (make) {
+      whereCondition.make = {
+        equals: make,
+        mode: "insensitive", // Case insensitive comparison
+      };
+    }
+
+    if (model) {
+      whereCondition.model = {
+        equals: model,
+        mode: "insensitive", // Case insensitive comparison
+      };
+    }
+
+    if (year) {
+      const yearNum = parseInt(year);
+      if (!isNaN(yearNum)) {
+        whereCondition.yearStart = yearNum;
+      } else {
+        console.warn(`Invalid year value: "${year}"`);
+      }
+    }
+
+    if (transponderType) {
+      whereCondition.transponderType = {
+        equals: transponderType,
+        mode: "insensitive", // Case insensitive comparison
+      };
+    }
+
+    console.log(
+      "Querying with where condition:",
+      JSON.stringify(whereCondition)
+    );
+
+    // Fetch transponders with Prisma directly using the where condition
+    const filteredTransponders = await prisma.transponderKey.findMany({
+      where: whereCondition,
+      orderBy: [{ make: "asc" }, { model: "asc" }, { yearStart: "desc" }],
+      take: 1000, // Increase limit for filtered results
     });
 
-    return NextResponse.json(transponders);
+    console.log(
+      `Found ${filteredTransponders.length} transponders matching the filters`
+    );
+
+    // Transform the data to handle both string and array formats
+    const transformedTransponders = filteredTransponders.map(
+      transformTransponderData
+    );
+
+    return NextResponse.json(transformedTransponders);
   } catch (error) {
     console.error("Error fetching transponders:", error);
     return NextResponse.json(
@@ -74,6 +112,25 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
+}
+
+// Helper function to transform transponder data
+function transformTransponderData(transponder: TransponderKey) {
+  // Extract chip types from comma-separated string
+  const chipType = transponder.chipType
+    ? transponder.chipType.split(",").map((c) => c.trim())
+    : [];
+
+  // Extract compatible parts from comma-separated string
+  const compatibleParts = transponder.compatibleParts
+    ? transponder.compatibleParts.split(",").map((p) => p.trim())
+    : [];
+
+  return {
+    ...transponder,
+    chipType,
+    compatibleParts,
+  };
 }
 
 export async function POST(request: Request) {

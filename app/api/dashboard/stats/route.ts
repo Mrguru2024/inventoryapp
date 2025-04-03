@@ -3,6 +3,8 @@ import { withRoleCheck } from "@/lib/api/withRoleCheck";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/auth/types";
 import { subDays } from "date-fns";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 type StatsRouteContext = {
   params: Record<string, string | string[]>;
@@ -10,6 +12,11 @@ type StatsRouteContext = {
 
 async function handler(req: NextRequest, context: StatsRouteContext) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const [totalInventory, pendingApprovals, lowStock, recentOrders] =
       await Promise.all([
         prisma.inventory.count(),
@@ -24,6 +31,9 @@ async function handler(req: NextRequest, context: StatsRouteContext) {
             createdAt: {
               gte: subDays(new Date(), 7),
             },
+            ...(session.user.role === UserRole.TECHNICIAN
+              ? { technicianId: session.user.id }
+              : {}),
           },
         }),
       ]);

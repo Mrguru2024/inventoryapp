@@ -377,8 +377,16 @@ export default function TransponderManagement() {
   // Filter transponder data based on search params
   const filteredTransponderData = useMemo(() => {
     return transponderData.filter((t) => {
-      if (searchParams.make && t.make !== searchParams.make) return false;
-      if (searchParams.model && t.model !== searchParams.model) return false;
+      if (
+        searchParams.make &&
+        t.make.toLowerCase() !== searchParams.make.toLowerCase()
+      )
+        return false;
+      if (
+        searchParams.model &&
+        t.model.toLowerCase() !== searchParams.model.toLowerCase()
+      )
+        return false;
       if (searchParams.year) {
         const yearNum = parseInt(searchParams.year);
         if ("yearStart" in t && typeof t.yearStart === "number") {
@@ -406,7 +414,9 @@ export default function TransponderManagement() {
       if (!make) return [];
       const models = Array.from(
         new Set(
-          transponderData.filter((t) => t.make === make).map((t) => t.model)
+          transponderData
+            .filter((t) => t.make.toLowerCase() === make.toLowerCase())
+            .map((t) => t.model)
         )
       );
       return models.sort();
@@ -421,7 +431,11 @@ export default function TransponderManagement() {
       const years = Array.from(
         new Set(
           transponderData
-            .filter((t) => t.make === make && t.model === model)
+            .filter(
+              (t) =>
+                t.make.toLowerCase() === make.toLowerCase() &&
+                t.model.toLowerCase() === model.toLowerCase()
+            )
             .map((t) => t.yearStart)
         )
       ).filter((year) => year >= 1985 && year <= 2025); // Focus on vehicles from 1985 to 2025
@@ -725,9 +739,16 @@ export default function TransponderManagement() {
                     new Set(
                       transponderData
                         .filter((t: TransponderKeyData) => {
-                          if (selectedMake && t.make !== selectedMake)
+                          if (
+                            selectedMake &&
+                            t.make.toLowerCase() !== selectedMake.toLowerCase()
+                          )
                             return false;
-                          if (selectedModel && t.model !== selectedModel)
+                          if (
+                            selectedModel &&
+                            t.model.toLowerCase() !==
+                              selectedModel.toLowerCase()
+                          )
                             return false;
                           if (
                             selectedYear &&

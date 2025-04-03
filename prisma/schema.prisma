@@ -81,33 +81,42 @@ model Message {
 }
 
 model Inventory {
-  id               String   @id @default(cuid())
-  sku              String   @unique
-  brand            String
-  model            String
-  stockCount       Int
-  lowStockThreshold Int
-  price            Float
-  fccId            String?
-  frequency        String?
-  purchaseSource   String?
-  isSmartKey       Boolean @default(false)
-  isTransponderKey Boolean @default(false)
-  carMake         String?
-  carModel        String?
-  carYear         Int?
-  notes           String?  @db.Text
-  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  technician      User     @relation("TechnicianInventory", fields: [technicianId], references: [id])
-  technicianId    String
-  createdByUser   User     @relation("CreatedInventory", fields: [createdBy], references: [id])
-  createdBy       String
-  requests        Request[]
+  id                String   @id @default(cuid())
+  sku               String   @unique
+  brand             String
+  model             String
+  stockCount        Int      @default(0)
+  lowStockThreshold Int      @default(5)
+  price             Float
+  fccId             String?
+  frequency         String?
+  purchaseSource    String?
+  isSmartKey        Boolean  @default(false)
+  isTransponderKey  Boolean  @default(false)
+  carMake           String?
+  carModel          String?
+  carYear           Int?
+  notes             String?
+  status            String   @default("PENDING")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  technicianId      String?
+  createdBy         String?
+  technician        User?    @relation("TechnicianInventory", fields: [technicianId], references: [id])
+  creator           User?    @relation("CreatedInventory", fields: [createdBy], references: [id])
+  requests          Request[]
+  transponderKey    TransponderKey? @relation("TransponderKeyToInventory", fields: [transponderKeyId], references: [id])
+  transponderKeyId  String?
 
-  @@index([technicianId])
-  @@index([createdBy])
+  @@index([brand], name: "Inventory_brand_idx")
+  @@index([model], name: "Inventory_model_idx")
+  @@index([carMake], name: "Inventory_carMake_idx")
+  @@index([carModel], name: "Inventory_carModel_idx")
+  @@index([carYear], name: "Inventory_carYear_idx")
+  @@index([fccId], name: "Inventory_fccId_idx")
+  @@index([technicianId], name: "Inventory_technicianId_idx")
+  @@index([createdBy], name: "Inventory_createdBy_idx")
+  @@index([transponderKeyId], name: "Inventory_transponderKeyId_idx")
 }
 
 model Request {
@@ -137,22 +146,28 @@ model Notification {
 }
 
 model TransponderKey {
-  id              String    @id @default(cuid())
+  id              String   @id @default(cuid())
   make            String
   model           String
-  yearStart       Int?
+  yearStart       Int
   yearEnd         Int?
   transponderType String
-  chipType        Json      // Stored as JSON
-  compatibleParts Json?     // Stored as JSON
+  chipType        String   @db.Text
+  compatibleParts String   @db.Text
   frequency       String?
-  notes           String?   @db.Text
-  dualSystem      Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  notes           String?
+  dualSystem      Boolean  @default(false)
+  fccId           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
   inventory       TransponderInventory?
+  inventoryItems  Inventory[]          @relation("TransponderKeyToInventory")
 
-  @@index([make, model])
+  @@index([make], name: "TransponderKey_make_idx")
+  @@index([model], name: "TransponderKey_model_idx")
+  @@index([yearStart], name: "TransponderKey_yearStart_idx")
+  @@index([transponderType], name: "TransponderKey_transponderType_idx")
+  @@index([fccId], name: "TransponderKey_fccId_idx")
 }
 
 model TransponderInventory {
@@ -168,7 +183,7 @@ model TransponderInventory {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  @@index([transponderKeyId])
+  @@index([transponderKeyId], name: "TransponderInventory_transponderKeyId_idx")
 }
 
 model SearchAnalytics {

@@ -111,7 +111,10 @@ export function TransponderFilters({
             {Array.from(
               new Set(
                 transponders
-                  .filter((t: TransponderKeyData) => t.make === selectedMake)
+                  .filter(
+                    (t: TransponderKeyData) =>
+                      t.make.toLowerCase() === selectedMake.toLowerCase()
+                  )
                   .map((t) => t.model)
               )
             ).map((model) => (
@@ -142,8 +145,15 @@ export function TransponderFilters({
               new Set(
                 transponders
                   .filter((t: TransponderKeyData) => {
-                    if (selectedMake && t.make !== selectedMake) return false;
-                    if (selectedModel && t.model !== selectedModel)
+                    if (
+                      selectedMake &&
+                      t.make.toLowerCase() !== selectedMake.toLowerCase()
+                    )
+                      return false;
+                    if (
+                      selectedModel &&
+                      t.model.toLowerCase() !== selectedModel.toLowerCase()
+                    )
                       return false;
                     return true;
                   })
@@ -179,8 +189,15 @@ export function TransponderFilters({
               new Set(
                 transponders
                   .filter((t: TransponderKeyData) => {
-                    if (selectedMake && t.make !== selectedMake) return false;
-                    if (selectedModel && t.model !== selectedModel)
+                    if (
+                      selectedMake &&
+                      t.make.toLowerCase() !== selectedMake.toLowerCase()
+                    )
+                      return false;
+                    if (
+                      selectedModel &&
+                      t.model.toLowerCase() !== selectedModel.toLowerCase()
+                    )
                       return false;
                     if (selectedYear && t.yearStart !== parseInt(selectedYear))
                       return false;

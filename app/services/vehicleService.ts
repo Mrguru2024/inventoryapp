@@ -127,10 +127,27 @@ class VehicleService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      return data.Results;
+
+      // Filter and normalize makes
+      const filteredMakes = data.Results.filter((make: any) =>
+        this.isRelevantMake(make.Make_Name)
+      )
+        .map((make: any) => ({
+          MakeId: make.Make_ID,
+          MakeName: this.normalizeMakeName(make.Make_Name),
+        }))
+        .sort((a: Make, b: Make) => a.MakeName.localeCompare(b.MakeName));
+
+      return filteredMakes;
     } catch (error) {
       console.error("Error fetching makes:", error);
-      throw error;
+      // Return fallback makes if API fails
+      return Object.keys(MAKE_NAME_MAPPING)
+        .map((make, index) => ({
+          MakeId: index + 1,
+          MakeName: this.normalizeMakeName(make),
+        }))
+        .sort((a, b) => a.MakeName.localeCompare(b.MakeName));
     }
   }
 

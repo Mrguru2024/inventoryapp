@@ -1,11 +1,28 @@
-import { withRoleCheck } from "@/app/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/auth.config";
 import { prisma } from "@/app/lib/prisma";
+import { UserRole } from "@/app/lib/auth/types";
 
-async function handler(req: Request, { params }: { params: { id: string } }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: { id: string } }
+): Promise<Response> {
   try {
-    const userId = parseInt(params.id);
-    if (isNaN(userId)) {
-      return Response.json({ error: "Invalid user ID" }, { status: 400 });
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== UserRole.ADMIN) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    const userId = context.params.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
     }
 
     const user = await prisma.user.update({
@@ -13,11 +30,12 @@ async function handler(req: Request, { params }: { params: { id: string } }) {
       data: { isApproved: true },
     });
 
-    return Response.json(user);
+    return NextResponse.json(user);
   } catch (error) {
     console.error("Error approving user:", error);
-    return Response.json({ error: "Failed to approve user" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to approve user" },
+      { status: 500 }
+    );
   }
 }
-
-export const POST = withRoleCheck(handler, "ADMIN");

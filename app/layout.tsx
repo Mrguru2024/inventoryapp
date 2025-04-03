@@ -1,19 +1,15 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Providers } from "@/app/components/Providers";
-import ChatWidget from "./components/ChatWidget";
+import { Providers } from "@/app/providers";
+import ClientChatWrapper from "./components/ClientChatWrapper";
 
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  preload: true,
-  adjustFontFallback: true,
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Key Inventory Management System",
-  description: "Manage your key inventory efficiently",
+  title: "Inventory Management System",
+  description:
+    "A comprehensive inventory management system for key and transponder management",
 };
 
 export default function RootLayout({
@@ -26,7 +22,7 @@ export default function RootLayout({
       <body className={inter.className} suppressHydrationWarning>
         <Providers>
           <main className="min-h-screen bg-background">{children}</main>
-          <ChatWidget />
+          <ClientChatWrapper />
         </Providers>
       </body>
     </html>

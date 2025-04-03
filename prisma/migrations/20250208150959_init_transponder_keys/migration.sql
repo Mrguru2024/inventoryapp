@@ -15,6 +15,10 @@ CREATE TABLE `TransponderKey` (
 
     INDEX `TransponderKey_make_model_idx`(`make`, `model`),
     INDEX `TransponderKey_transponderType_idx`(`transponderType`),
+    INDEX `TransponderKey_yearStart_yearEnd_idx`(`yearStart`, `yearEnd`),
+    INDEX `TransponderKey_chipType_idx`(`chipType`),
+    INDEX `TransponderKey_compatibleParts_idx`(`compatibleParts`),
+    INDEX `TransponderKey_dualSystem_idx`(`dualSystem`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

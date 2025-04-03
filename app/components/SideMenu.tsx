@@ -16,7 +16,10 @@ import {
   SearchIcon,
   type LucideIcon,
   MessageSquare,
+  Package,
+  Clock,
 } from "lucide-react";
+import { useMemo } from "react";
 
 // Define interfaces for our menu items
 interface MenuItem {
@@ -45,9 +48,36 @@ const menuItems: MenuItem[] = [
     color: "text-blue-500",
   },
   {
+    label: "Inventory",
+    icon: Package,
+    href: "/admin/inventory",
+    color: "text-green-500",
+    subItems: [
+      {
+        label: "All Inventory",
+        icon: DatabaseIcon,
+        href: "/admin/inventory/all",
+        color: "text-green-500",
+      },
+      {
+        label: "My Inventory",
+        icon: Package,
+        href: "/admin/inventory/my",
+        color: "text-green-500",
+      },
+      {
+        label: "Pending Approval",
+        icon: Clock,
+        href: "/admin/inventory/pending",
+        color: "text-yellow-500",
+        adminOnly: true,
+      },
+    ],
+  },
+  {
     label: "Transponders",
     icon: KeyIcon,
-    href: "/admin/transponders",
+    href: "/admin/transponders/manage",
     color: "text-green-500",
     subItems: [
       {
@@ -91,6 +121,20 @@ export default function SideMenu() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
 
+  // Memoize filtered menu items
+  const filteredMenuItems = useMemo(() => {
+    if (status !== "authenticated" || !session?.user) return [];
+
+    const userRole = session.user.role as UserRole;
+    const isAdmin = isSuperAdmin(userRole);
+
+    return menuItems.filter((item) => {
+      if (item.superAdminOnly && !isAdmin) return false;
+      if (item.requiredRole && userRole !== item.requiredRole) return false;
+      return true;
+    });
+  }, [session?.user, status]);
+
   if (status === "loading") {
     return (
       <div className="flex items-center justify-center h-full">
@@ -103,15 +147,6 @@ export default function SideMenu() {
     return null;
   }
 
-  const userRole = session.user.role as UserRole;
-  const isAdmin = isSuperAdmin(userRole);
-
-  const filteredMenuItems = menuItems.filter((item) => {
-    if (item.superAdminOnly && !isAdmin) return false;
-    if (item.requiredRole && userRole !== item.requiredRole) return false;
-    return true;
-  });
-
   return (
     <nav className="space-y-1">
       {filteredMenuItems.map((item) => (
@@ -119,10 +154,10 @@ export default function SideMenu() {
           <Link
             href={item.href}
             className={cn(
-              "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+              "flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors duration-150",
               pathname === item.href
-                ? "bg-gray-100 dark:bg-gray-800"
-                : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
             )}
           >
             <item.icon className={cn("mr-3 h-5 w-5", item.color)} />
@@ -135,10 +170,10 @@ export default function SideMenu() {
                   key={subItem.href}
                   href={subItem.href}
                   className={cn(
-                    "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+                    "flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors duration-150",
                     pathname === subItem.href
-                      ? "bg-gray-100 dark:bg-gray-800"
-                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                      : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                   )}
                 >
                   <subItem.icon className={cn("mr-3 h-5 w-5", subItem.color)} />

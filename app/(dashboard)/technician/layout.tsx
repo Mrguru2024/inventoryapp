@@ -1,15 +1,20 @@
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/auth.config';
-import Link from 'next/link';
-import { QrCode, ClipboardList, Settings, Search, Key } from 'lucide-react';
-import { ThemeProvider } from '@/app/components/ThemeProvider';
-import dynamic from 'next/dynamic';
+"use client";
+
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/auth.config";
+import Link from "next/link";
+import { QrCode, ClipboardList, Settings, Search, Key } from "lucide-react";
+import { ThemeProvider } from "@/app/components/ThemeProvider";
+import dynamic from "next/dynamic";
 
 // Dynamically import ThemeToggle with no SSR
-const ThemeToggle = dynamic(() => import('@/app/components/ThemeToggle'), {
-  ssr: false,
-});
+const ClientThemeToggle = dynamic(
+  () => import("@/app/components/ThemeToggle").then((mod) => mod.ThemeToggle),
+  {
+    ssr: false,
+  }
+);
 
 export default async function TechnicianLayout({
   children,
@@ -19,11 +24,11 @@ export default async function TechnicianLayout({
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect('/auth/signin');
+    redirect("/auth/signin");
   }
 
-  if (session.user.role !== 'TECHNICIAN') {
-    redirect('/');
+  if (session.user.role !== "TECHNICIAN") {
+    redirect("/");
   }
 
   return (
@@ -34,8 +39,12 @@ export default async function TechnicianLayout({
           <div className="flex flex-col h-full">
             {/* Logo/Header */}
             <div className="flex-shrink-0 px-4 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white">Inventory System</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Technician Portal</p>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                Inventory System
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Technician Portal
+              </p>
             </div>
 
             {/* Navigation */}
@@ -50,7 +59,12 @@ export default async function TechnicianLayout({
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                  />
                 </svg>
                 Dashboard
               </Link>
@@ -109,7 +123,12 @@ export default async function TechnicianLayout({
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                    />
                   </svg>
                   Sign Out
                 </button>
@@ -125,9 +144,9 @@ export default async function TechnicianLayout({
               {children}
             </div>
           </main>
-          <ThemeToggle />
+          <ClientThemeToggle />
         </div>
       </div>
     </ThemeProvider>
   );
-} 
+}

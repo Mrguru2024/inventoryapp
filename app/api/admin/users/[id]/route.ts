@@ -1,106 +1,48 @@
-import { NextResponse } from "next/server";
-import { withRoleCheck } from "@/app/lib/auth";
+import { NextRequest } from "next/server";
+import { withRoleCheck } from "@/lib/api/withRoleCheck";
 import { prisma } from "@/app/lib/prisma";
+import { UserRole } from "@/app/lib/auth/types";
 
-async function handler(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  const userId = parseInt(params.id);
-  if (isNaN(userId)) {
-    return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
-  }
+type RouteContext = {
+  params: { [key: string]: string | string[] };
+};
 
-  if (request.method === "PUT") {
-    try {
-      const body = await request.json();
-      const { name, email, role } = body;
+async function handler(request: NextRequest, context: RouteContext) {
+  try {
+    const userId = Array.isArray(context.params.id)
+      ? context.params.id[0]
+      : context.params.id;
 
-      // Validate required fields
-      if (!name || !email || !role) {
-        return NextResponse.json(
-          { error: "Missing required fields" },
-          { status: 400 }
-        );
-      }
-
-      // Check if email is already taken by another user
-      const existingUser = await prisma.user.findFirst({
-        where: {
-          email,
-          NOT: {
-            id: userId,
-          },
-        },
-      });
-
-      if (existingUser) {
-        return NextResponse.json(
-          { error: "Email is already in use" },
-          { status: 400 }
-        );
-      }
-
-      const updatedUser = await prisma.user.update({
-        where: { id: userId },
-        data: {
-          name,
-          email,
-          role,
-        },
-      });
-
-      return NextResponse.json(updatedUser);
-    } catch (error) {
-      console.error("Error updating user:", error);
-      return NextResponse.json(
-        { error: "Failed to update user" },
-        { status: 500 }
-      );
+    if (!userId) {
+      return Response.json({ error: "Invalid user ID" }, { status: 400 });
     }
-  }
 
-  if (request.method === "DELETE") {
-    try {
-      // Check if user exists
+    if (request.method === "GET") {
       const user = await prisma.user.findUnique({
         where: { id: userId },
       });
 
       if (!user) {
-        return NextResponse.json({ error: "User not found" }, { status: 404 });
+        return Response.json({ error: "User not found" }, { status: 404 });
       }
 
-      // Prevent deleting the last admin
-      if (user.role === "ADMIN") {
-        const adminCount = await prisma.user.count({
-          where: { role: "ADMIN" },
-        });
+      return Response.json(user);
+    }
 
-        if (adminCount <= 1) {
-          return NextResponse.json(
-            { error: "Cannot delete the last admin user" },
-            { status: 400 }
-          );
-        }
-      }
-
+    if (request.method === "DELETE") {
       await prisma.user.delete({
         where: { id: userId },
       });
 
-      return NextResponse.json({ success: true });
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      return NextResponse.json(
-        { error: "Failed to delete user" },
-        { status: 500 }
-      );
+      return Response.json({ message: "User deleted successfully" });
     }
-  }
 
-  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+    return Response.json({ error: "Method not allowed" }, { status: 405 });
+  } catch (error) {
+    console.error("Error handling user:", error);
+    return Response.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
-export const PUT = withRoleCheck(handler, "ADMIN");
-export const DELETE = withRoleCheck(handler, "ADMIN");
+export const GET = withRoleCheck(handler, UserRole.ADMIN);
+export const DELETE = withRoleCheck(handler, UserRole.ADMIN);

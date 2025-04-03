@@ -1,0 +1,83 @@
+.container {
+  @apply p-6 space-y-6;
+}
+
+.searchSection {
+  @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 space-y-6;
+}
+
+.searchContainer {
+  @apply flex flex-col sm:flex-row gap-4 items-center;
+}
+
+.searchInput {
+  @apply flex-1 relative;
+}
+
+.searchInput input {
+  @apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200;
+}
+
+.resetButton {
+  @apply px-6 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 whitespace-nowrap;
+}
+
+.filtersGrid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6;
+}
+
+.filterContainer {
+  @apply relative space-y-2;
+}
+
+.filterLabel {
+  @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+}
+
+.filterSelect {
+  @apply w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white;
+}
+
+.filterSelectDisabled {
+  @apply bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed;
+}
+
+.filterSelect option {
+  @apply bg-white dark:bg-gray-700 text-gray-900 dark:text-white;
+}
+
+.resultsSection {
+  @apply mt-8 space-y-4;
+}
+
+.resultsGrid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+.resultCard {
+  @apply p-6 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 bg-white dark:bg-gray-800;
+}
+
+.resultTitle {
+  @apply font-medium text-lg mb-3 text-gray-900 dark:text-white;
+}
+
+.resultInfo {
+  @apply text-sm text-gray-600 dark:text-gray-400 space-y-2;
+}
+
+.resultLabel {
+  @apply font-medium text-gray-700 dark:text-gray-300;
+}
+
+.loadingContainer {
+  @apply flex items-center justify-center h-64;
+}
+
+.errorMessage {
+  @apply text-red-500 dark:text-red-400 text-sm mt-2;
+}
+
+.loadingMessage {
+  @apply text-gray-500 dark:text-gray-400 text-sm mt-2;
+}

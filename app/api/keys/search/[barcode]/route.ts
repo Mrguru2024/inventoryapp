@@ -1,35 +1,35 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(
-  req: Request,
+  request: Request,
   { params }: { params: { barcode: string } }
 ) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+  const session = await getServerSession(authOptions);
 
-    const key = await prisma.key.findFirst({
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const key = await prisma.transponderKey.findUnique({
       where: {
-        OR: [
-          { partNumber: params.barcode },
-          { fccId: params.barcode },
-          { continentalNumber: params.barcode },
-        ],
+        barcode: params.barcode,
       },
     });
 
     if (!key) {
-      return new NextResponse('Key not found', { status: 404 });
+      return NextResponse.json({ error: "Key not found" }, { status: 404 });
     }
 
     return NextResponse.json(key);
   } catch (error) {
-    console.error('Error searching key:', error);
-    return new NextResponse('Error searching key', { status: 500 });
+    console.error("Error searching for key:", error);
+    return NextResponse.json(
+      { error: "Failed to search for key" },
+      { status: 500 }
+    );
   }
-} 
+}

@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["extendedWhereUnique"]
 }
 
 datasource db {
@@ -7,54 +8,136 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 model User {
-  id            Int       @id @default(autoincrement())
+  id            String    @id @default(cuid())
   name          String?
-  email         String    @unique
-  password      String
-  role          Role      @default(CUSTOMER)
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String    @default("USER") // USER, TECHNICIAN, ADMIN, SUPER_ADMIN
   isApproved    Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sentMessages     Message[] @relation("SentMessages")
+  accounts      Account[]
+  sessions      Session[]
+  messages      Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
+  technicianInventory Inventory[] @relation("TechnicianInventory")
+  createdInventory Inventory[] @relation("CreatedInventory")
+  requests      Request[]
+  notifications Notification[]
+  activities    Activity[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
+  isRead      Boolean  @default(false)
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  senderId    String
+  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id])
+  recipientId String
+
+  @@index([senderId])
+  @@index([recipientId])
 }
 
 model Inventory {
-  id                Int       @id @default(autoincrement())
-  sku               String    @unique
-  brand             String
-  model             String
-  stockCount        Int       @default(0)
-  lowStockThreshold Int       @default(5)
-  requests          Request[]
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id               String   @id @default(cuid())
+  sku              String   @unique
+  brand            String
+  model            String
+  stockCount       Int
+  lowStockThreshold Int
+  price            Float
+  fccId            String?
+  frequency        String?
+  purchaseSource   String?
+  isSmartKey       Boolean @default(false)
+  isTransponderKey Boolean @default(false)
+  carMake         String?
+  carModel        String?
+  carYear         Int?
+  notes           String?  @db.Text
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  technician      User     @relation("TechnicianInventory", fields: [technicianId], references: [id])
+  technicianId    String
+  createdByUser   User     @relation("CreatedInventory", fields: [createdBy], references: [id])
+  createdBy       String
+  requests        Request[]
+
+  @@index([technicianId])
+  @@index([createdBy])
 }
 
 model Request {
-  id               Int       @id @default(autoincrement())
+  id               String    @id @default(cuid())
   technician       User      @relation(fields: [technicianId], references: [id])
-  technicianId     Int
+  technicianId     String
   item             Inventory @relation(fields: [inventoryId], references: [id])
-  inventoryId      Int
+  inventoryId      String
   quantityRequested Int
-  status           Status    @default(PENDING)
+  status           String    @default("PENDING") // PENDING, APPROVED, REJECTED
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+
+  @@index([technicianId])
+  @@index([inventoryId])
 }
 
 model Notification {
-  id        Int      @id @default(autoincrement())
-  userId    Int
+  id        String   @id @default(cuid())
+  userId    String
   user      User     @relation(fields: [userId], references: [id])
-  message   String
+  message   String   @db.Text
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model TransponderKey {
-  id              Int       @id @default(autoincrement())
+  id              String    @id @default(cuid())
   make            String
   model           String
   yearStart       Int?
@@ -73,9 +156,9 @@ model TransponderKey {
 }
 
 model TransponderInventory {
-  id              Int            @id @default(autoincrement())
+  id              String         @id @default(cuid())
   transponderKey  TransponderKey @relation(fields: [transponderKeyId], references: [id])
-  transponderKeyId Int           @unique
+  transponderKeyId String        @unique
   quantity        Int            @default(0)
   minimumStock    Int            @default(5)
   location        String
@@ -84,17 +167,32 @@ model TransponderInventory {
   notes           String?        @db.Text
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+
+  @@index([transponderKeyId])
 }
 
-model Message {
-  id          Int      @id @default(autoincrement())
-  content     String
-  createdAt   DateTime @default(now())
-  isRead      Boolean  @default(false)
-  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
-  senderId    Int
-  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id])
-  recipientId Int
+model SearchAnalytics {
+  id           String   @id @default(cuid())
+  query        String
+  category     String
+  resultsCount Int
+  filters      String   @db.Text
+  createdAt    DateTime @default(now())
+
+  @@index([category])
+  @@index([createdAt])
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  type        String
+  description String   @db.Text
+  timestamp   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+
+  @@index([userId])
+  @@index([timestamp])
 }
 
 enum Role {

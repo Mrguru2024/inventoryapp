@@ -1,38 +1,41 @@
-import { withRoleCheck } from "@/app/lib/auth";
+import { NextRequest } from "next/server";
+import { withRoleCheck } from "@/lib/api/withRoleCheck";
 import { prisma } from "@/app/lib/prisma";
-import { NextResponse } from "next/server";
+import { UserRole } from "@/app/lib/auth/types";
 
-async function handler(req: Request) {
+type RouteContext = {
+  params: Record<string, never>;
+};
+
+async function handler(request: NextRequest, context: RouteContext) {
   try {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: "User ID is required" },
+    const { messageIds } = await request.json();
+    if (!Array.isArray(messageIds) || messageIds.length === 0) {
+      return Response.json(
+        { error: "Message IDs are required" },
         { status: 400 }
       );
     }
 
-    // Update all unread messages for this user
     await prisma.message.updateMany({
       where: {
-        recipientId: parseInt(userId),
-        isRead: false,
+        id: {
+          in: messageIds,
+        },
       },
       data: {
         isRead: true,
       },
     });
 
-    return NextResponse.json({ success: true });
+    return Response.json({ message: "Messages marked as read" });
   } catch (error) {
     console.error("Error marking messages as read:", error);
-    return NextResponse.json(
+    return Response.json(
       { error: "Failed to mark messages as read" },
       { status: 500 }
     );
   }
 }
 
-export const POST = withRoleCheck(handler, "ADMIN");
+export const POST = withRoleCheck<RouteContext>(handler, UserRole.ADMIN);

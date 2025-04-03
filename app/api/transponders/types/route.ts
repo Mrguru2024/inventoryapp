@@ -1,21 +1,24 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 
+interface TransponderType {
+  transponderType: string;
+}
+
 export async function GET() {
   try {
-    // Get unique transponder types from the database
+    // Get distinct transponder types
     const transponderTypes = await prisma.transponderKey.findMany({
+      distinct: ["transponderType"],
       select: {
         transponderType: true,
-      },
-      distinct: ["transponderType"],
-      orderBy: {
-        transponderType: "asc",
       },
     });
 
     // Extract just the type strings
-    const types = transponderTypes.map((t) => t.transponderType);
+    const types = transponderTypes.map(
+      (t: TransponderType) => t.transponderType
+    );
 
     return NextResponse.json(types);
   } catch (error) {

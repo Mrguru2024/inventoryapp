@@ -1,6 +1,28 @@
+import { DefaultSession } from "next-auth";
+
 export enum UserRole {
-  SUPER_ADMIN = 'SUPER_ADMIN',
-  ADMIN = 'ADMIN',
-  TECHNICIAN = 'TECHNICIAN',
-  USER = 'USER'
-} 
+  ADMIN = "ADMIN",
+  TECHNICIAN = "TECHNICIAN",
+  CUSTOMER = "CUSTOMER",
+}
+
+export interface User {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  role: UserRole;
+  isApproved: boolean;
+}
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      role: UserRole;
+    } & DefaultSession["user"];
+  }
+
+  interface User {
+    role: UserRole;
+  }
+}

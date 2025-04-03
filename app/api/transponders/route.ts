@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/app/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { TransponderData } from "@/app/services/transponderService";
 
@@ -22,10 +22,48 @@ interface TransponderKey {
   updatedAt: Date;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const make = searchParams.get("make");
+    const model = searchParams.get("model");
+    const year = searchParams.get("year");
+    const transponderType = searchParams.get("transponderType");
+    const search = searchParams.get("search");
+
+    // Build where clause based on search parameters
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        {
+          make: {
+            contains: search,
+          },
+        },
+        {
+          model: {
+            contains: search,
+          },
+        },
+        {
+          transponderType: {
+            contains: search,
+          },
+        },
+      ];
+    }
+    if (make) where.make = make;
+    if (model) where.model = model;
+    if (year) where.yearStart = parseInt(year);
+    if (transponderType) where.transponderType = transponderType;
+
+    // Fetch transponders with filtering
     const transponders = await prisma.transponderKey.findMany({
-      orderBy: [{ make: "asc" }, { model: "asc" }, { yearStart: "desc" }],
+      where,
+      take: 100, // Limit results to 100
+      orderBy: {
+        make: "asc",
+      },
     });
 
     return NextResponse.json(transponders);

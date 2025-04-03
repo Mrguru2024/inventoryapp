@@ -1,18 +1,22 @@
-import { withRoleCheck } from "@/app/lib/auth";
+import { NextRequest } from "next/server";
+import { withRoleCheck } from "@/lib/api/withRoleCheck";
 import { prisma } from "@/app/lib/prisma";
+import { UserRole } from "@/app/lib/auth/types";
 
-async function handler(req: Request) {
+type RouteContext = {
+  params: Record<string, never>;
+};
+
+async function handler(request: NextRequest, context: RouteContext) {
   try {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
-
+    const userId = request.headers.get("x-user-id");
     if (!userId) {
       return Response.json({ error: "User ID is required" }, { status: 400 });
     }
 
     const messages = await prisma.message.findMany({
       where: {
-        OR: [{ senderId: parseInt(userId) }, { recipientId: parseInt(userId) }],
+        OR: [{ senderId: userId }, { receiverId: userId }],
       },
       include: {
         sender: {
@@ -21,7 +25,7 @@ async function handler(req: Request) {
             name: true,
           },
         },
-        recipient: {
+        receiver: {
           select: {
             id: true,
             name: true,
@@ -29,7 +33,7 @@ async function handler(req: Request) {
         },
       },
       orderBy: {
-        createdAt: "asc",
+        createdAt: "desc",
       },
     });
 
@@ -43,4 +47,4 @@ async function handler(req: Request) {
   }
 }
 
-export const GET = withRoleCheck(handler, "ADMIN");
+export const GET = withRoleCheck<RouteContext>(handler, UserRole.ADMIN);

@@ -27,6 +27,8 @@ import { ErrorBoundary, FallbackProps } from "react-error-boundary";
 import debounce from "lodash/debounce";
 import logger from "@/app/utils/logger";
 import SearchAnalyticsService from "@/app/services/analyticsService";
+import { useQuery } from "@tanstack/react-query";
+import { TransponderFilters } from "@/app/lib/domain/value-objects";
 
 interface Make {
   MakeId: number;
@@ -802,6 +804,7 @@ export default function VehicleTransponderSearch() {
                     setSearchResults(null);
                   }}
                   className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  title="Clear search"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -923,6 +926,7 @@ export default function VehicleTransponderSearch() {
                   localStorage.removeItem("transponder-search-history");
                 }}
                 className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                title="Clear search history"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -1107,6 +1111,42 @@ export default function VehicleTransponderSearch() {
     </div>
   );
 
+  // Memoize filters to prevent unnecessary re-renders
+  const filtersMemo = useMemo(() => {
+    const filter: TransponderFilters = {};
+    if (selectedMake) filter.make = selectedMake;
+    if (selectedModel) filter.model = selectedModel;
+    if (searchQuery) filter.searchTerm = searchQuery;
+    return filter;
+  }, [selectedMake, selectedModel, searchQuery]);
+
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce((term: string) => {
+      setSearchQuery(term);
+    }, 300),
+    []
+  );
+
+  // Fetch transponders with optimized query
+  const {
+    data: filteredTransponders = [],
+    isLoading: isLoadingFilteredTransponders,
+  } = useQuery({
+    queryKey: ["transponders", filtersMemo],
+    queryFn: async () => {
+      const response = await fetch("/api/transponders/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(filtersMemo),
+      });
+      if (!response.ok) throw new Error("Failed to fetch transponders");
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // Cache results for 5 minutes
+    keepPreviousData: true, // Keep showing previous results while loading
+  });
+
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <div className="space-y-6">
@@ -1155,6 +1195,7 @@ export default function VehicleTransponderSearch() {
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className="px-4 py-2 flex items-center gap-2 bg-white dark:bg-gray-700 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
+                title="Toggle filter options"
               >
                 <Filter className="h-5 w-5" />
                 Filters
@@ -1353,7 +1394,7 @@ export default function VehicleTransponderSearch() {
 
           {/* Results Section */}
           <AnimatePresence mode="wait">
-            {filteredResults && (
+            {filteredTransponders.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1364,20 +1405,14 @@ export default function VehicleTransponderSearch() {
                   Compatible Transponders
                 </h3>
 
-                {filteredResults.transponders.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {filteredResults.transponders.map((transponder) => (
-                      <TransponderCard
-                        key={transponder.id}
-                        transponder={transponder}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    No compatible transponders found for this vehicle.
-                  </div>
-                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredTransponders.map((transponder) => (
+                    <TransponderCard
+                      key={transponder.id}
+                      transponder={transponder}
+                    />
+                  ))}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

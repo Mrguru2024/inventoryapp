@@ -1,29 +1,43 @@
-import { withRoleCheck } from "@/app/lib/auth";
+import { NextRequest } from "next/server";
+import { withRoleCheck } from "@/lib/api/withRoleCheck";
 import { prisma } from "@/app/lib/prisma";
+import { UserRole } from "@/app/lib/auth/types";
 
-async function handler(req: Request, { params }: { params: { id: string } }) {
+type RouteContext = {
+  params: { [key: string]: string | string[] };
+};
+
+async function handler(request: NextRequest, context: RouteContext) {
   try {
-    const userId = parseInt(params.id);
-    if (isNaN(userId)) {
+    const userId = Array.isArray(context.params.id)
+      ? context.params.id[0]
+      : context.params.id;
+
+    if (!userId) {
       return Response.json({ error: "Invalid user ID" }, { status: 400 });
     }
 
-    const { message } = await req.json();
+    const { message } = await request.json();
     if (!message) {
       return Response.json({ error: "Message is required" }, { status: 400 });
     }
 
-    // Create a message in the database
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return Response.json({ error: "User not found" }, { status: 404 });
+    }
+
     const newMessage = await prisma.message.create({
       data: {
         content: message,
-        senderId: userId, // The admin's user ID
-        recipientId: userId, // The target user's ID
+        senderId: request.headers.get("x-user-id") || "",
+        recipientId: userId,
       },
     });
 
-    // Here you would typically integrate with your email service or notification system
-    // For now, we'll just return the created message
     return Response.json(newMessage);
   } catch (error) {
     console.error("Error sending message:", error);
@@ -31,4 +45,4 @@ async function handler(req: Request, { params }: { params: { id: string } }) {
   }
 }
 
-export const POST = withRoleCheck(handler, "ADMIN");
+export const POST = withRoleCheck(handler, UserRole.ADMIN);

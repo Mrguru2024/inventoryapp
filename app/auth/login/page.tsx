@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { signIn, useSession } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
+import { useState, useEffect } from "react";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,12 +12,13 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   // Get the callback URL from the query parameters or use default
-  const callbackUrl = searchParams.get('from') || '/dashboard';
+  const callbackUrl = searchParams.get("from") || "/dashboard";
 
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === "authenticated") {
       router.replace(callbackUrl);
     }
   }, [status, router, callbackUrl]);
@@ -25,41 +26,54 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setDebugInfo(null);
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    setDebugInfo(`Attempting login with email: ${email}`);
 
     try {
-      const result = await signIn('credentials', {
+      const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
         callbackUrl,
       });
 
+      setDebugInfo(
+        (prev) => `${prev}\nResult: ${JSON.stringify(result, null, 2)}`
+      );
+
       if (result?.error) {
-        setError('Invalid email or password');
+        setError(result.error);
         setIsLoading(false);
         return;
       }
 
       if (result?.ok) {
         // Wait for a brief moment to ensure session is updated
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         router.replace(callbackUrl);
       }
     } catch (error) {
-      console.error('Login error:', error);
-      setError('An error occurred. Please try again.');
+      console.error("Login error:", error);
+      setError("An error occurred. Please try again.");
+      setDebugInfo(
+        (prev) =>
+          `${prev}\nError: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+      );
     } finally {
       setIsLoading(false);
     }
   }
 
   // Show loading state while checking session
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">Loading...</div>
@@ -102,7 +116,7 @@ export default function LoginPage() {
             Sign in to your account
           </h2>
         </div>
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
@@ -117,6 +131,7 @@ export default function LoginPage() {
                 required
                 className={`${inputClasses} rounded-t-md`}
                 placeholder="Email address"
+                defaultValue="admin@example.com"
               />
             </div>
             <div>
@@ -131,6 +146,7 @@ export default function LoginPage() {
                 required
                 className={`${inputClasses} rounded-b-md`}
                 placeholder="Password"
+                defaultValue="admin123"
               />
             </div>
           </div>
@@ -138,6 +154,12 @@ export default function LoginPage() {
           {error && (
             <div className="text-red-500 dark:text-red-400 text-sm text-center">
               {error}
+            </div>
+          )}
+
+          {debugInfo && (
+            <div className="text-gray-500 dark:text-gray-400 text-xs text-center whitespace-pre-wrap">
+              {debugInfo}
             </div>
           )}
 
@@ -150,11 +172,11 @@ export default function LoginPage() {
                 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
                 disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-gray-900"
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? "Signing in..." : "Sign in"}
             </button>
           </div>
         </form>
       </div>
     </div>
   );
-} 
+}

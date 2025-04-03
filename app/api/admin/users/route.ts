@@ -1,7 +1,13 @@
-import { withRoleCheck } from "@/app/lib/auth";
+import { NextRequest } from "next/server";
+import { withRoleCheck } from "@/lib/api/withRoleCheck";
 import { prisma } from "@/app/lib/prisma";
+import { UserRole } from "@/app/lib/auth/types";
 
-async function handler(req: Request) {
+type RouteContext = {
+  params: Record<string, never>;
+};
+
+async function handler(request: NextRequest, context: RouteContext) {
   try {
     const users = await prisma.user.findMany({
       select: {
@@ -9,10 +15,7 @@ async function handler(req: Request) {
         name: true,
         email: true,
         role: true,
-        createdAt: true,
-      },
-      orderBy: {
-        createdAt: "desc",
+        isApproved: true,
       },
     });
 
@@ -23,4 +26,4 @@ async function handler(req: Request) {
   }
 }
 
-export const GET = withRoleCheck(handler, "ADMIN");
+export const GET = withRoleCheck<RouteContext>(handler, UserRole.ADMIN);

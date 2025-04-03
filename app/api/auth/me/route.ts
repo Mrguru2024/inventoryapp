@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../[...nextauth]/route';
-import { PrismaClient } from '@prisma/client';
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/lib/auth";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -9,11 +9,8 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -24,22 +21,19 @@ export async function GET() {
         email: true,
         role: true,
         createdAt: true,
-      }
+      },
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     return NextResponse.json(user);
   } catch (error) {
-    console.error('User data error:', error);
+    console.error("User data error:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch user data' },
+      { error: "Failed to fetch user data" },
       { status: 500 }
     );
   }
-} 
+}

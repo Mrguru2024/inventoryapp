@@ -3,6 +3,17 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../auth/auth.config";
 
+interface InventoryItem {
+  id: string;
+  sku: string;
+  brand: string;
+  model: string;
+  stockCount: number;
+  lowStockThreshold: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -89,7 +100,7 @@ export async function GET(req: Request) {
     });
 
     // Serialize the data to plain objects
-    const serializedInventory = inventory.map((item) => ({
+    const serializedInventory = inventory.map((item: InventoryItem) => ({
       id: String(item.id),
       sku: item.sku,
       make: item.brand, // Map brand to make for frontend compatibility

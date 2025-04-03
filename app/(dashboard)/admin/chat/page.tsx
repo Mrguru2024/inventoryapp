@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useWebSocket } from "@/app/hooks/useWebSocket";
+import { useSSE } from "@/app/hooks/useSSE";
 import { toast } from "react-hot-toast";
 import {
   MagnifyingGlassIcon,
@@ -11,23 +11,12 @@ import {
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 
-interface WebSocketMessage {
+interface Message {
   id: number;
   content: string;
   senderId: number;
   recipientId: number;
   createdAt: string;
-}
-
-interface Message extends WebSocketMessage {
-  sender: {
-    id: number;
-    name: string;
-  };
-  recipient: {
-    id: number;
-    name: string;
-  };
 }
 
 interface User {
@@ -51,9 +40,9 @@ export default function AdminChatPage() {
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [isLoading, setIsLoading] = useState(true);
 
-  const { sendMessage, isConnected } = useWebSocket({
-    onMessage: (message: WebSocketMessage) => {
-      setMessages((prev) => [...prev, message as Message]);
+  const { sendMessage, isConnected } = useSSE({
+    onMessage: (message) => {
+      setMessages((prev) => [...prev, message]);
       // Update user's last message and unread count
       setUsers((prev) =>
         prev.map((user) =>
@@ -69,7 +58,15 @@ export default function AdminChatPage() {
       );
     },
     onError: (error) => {
-      toast.error("Chat error: " + error.message);
+      console.error("SSE error:", error);
+      toast.error("Failed to connect to chat");
+    },
+    onStatusChange: (status) => {
+      if (status === "connected") {
+        toast.success("Connected to chat");
+      } else if (status === "disconnected") {
+        toast.error("Disconnected from chat");
+      }
     },
   });
 
@@ -125,13 +122,15 @@ export default function AdminChatPage() {
     }
   }, [selectedUser]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser || !newMessage.trim()) return;
 
-    const success = sendMessage(selectedUser.id, newMessage.trim());
+    const success = await sendMessage(selectedUser.id, newMessage.trim());
     if (success) {
       setNewMessage("");
+    } else {
+      toast.error("Failed to send message");
     }
   };
 
@@ -248,14 +247,14 @@ export default function AdminChatPage() {
                   <div
                     key={message.id}
                     className={`flex ${
-                      message.senderId === session?.user?.id
+                      message.senderId === Number(session?.user?.id)
                         ? "justify-end"
                         : "justify-start"
                     }`}
                   >
                     <div
                       className={`max-w-[80%] rounded-lg p-3 ${
-                        message.senderId === session?.user?.id
+                        message.senderId === Number(session?.user?.id)
                           ? "bg-blue-600 text-white"
                           : "bg-gray-100 text-gray-900"
                       }`}

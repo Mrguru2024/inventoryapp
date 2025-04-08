@@ -20,22 +20,37 @@ export default function InventoryPage() {
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/auth/signin");
+      return;
     }
-  }, [status, router]);
 
-  useEffect(() => {
-    if (session?.user) {
+    if (status === "authenticated" && session?.user) {
       fetchInventory();
     }
-  }, [session]);
+  }, [status, session, router]);
 
   const fetchInventory = async () => {
     try {
-      const response = await fetch("/api/inventory");
-      if (!response.ok) throw new Error("Failed to fetch inventory");
+      const response = await fetch("/api/inventory", {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 401) {
+        router.push("/auth/signin");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch inventory: ${response.statusText}`);
+      }
+
       const data = await response.json();
       setInventory(data);
     } catch (error) {
+      console.error("Error fetching inventory:", error);
       toast.error("Error fetching inventory");
     } finally {
       setLoading(false);
@@ -46,7 +61,10 @@ export default function InventoryPage() {
     try {
       const response = await fetch("/api/inventory", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           ...data,
           technicianId: session?.user?.id,

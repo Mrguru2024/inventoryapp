@@ -37,6 +37,7 @@ interface SubMenuItem {
   icon: LucideIcon;
   href: string;
   color: string;
+  adminOnly?: boolean;
 }
 
 // Define menu items
@@ -92,6 +93,24 @@ const menuItems: MenuItem[] = [
         href: "/admin/transponders/manage",
         color: "text-green-500",
       },
+      {
+        label: "FCC ID Data",
+        icon: DatabaseIcon,
+        href: "/admin/transponders/manage-fcc",
+        color: "text-blue-500",
+      },
+      {
+        label: "View FCC Data",
+        icon: SearchIcon,
+        href: "/admin/transponders/fcc-data",
+        color: "text-blue-500",
+      },
+      {
+        label: "Data Validation",
+        icon: SearchIcon,
+        href: "/admin/transponders/data-validation",
+        color: "text-yellow-500",
+      },
     ],
   },
   {
@@ -121,11 +140,13 @@ export default function SideMenu() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
 
+  // Get user role from session
+  const userRole = session?.user?.role as UserRole;
+
   // Memoize filtered menu items
   const filteredMenuItems = useMemo(() => {
     if (status !== "authenticated" || !session?.user) return [];
 
-    const userRole = session.user.role as UserRole;
     const isAdmin = isSuperAdmin(userRole);
 
     return menuItems.filter((item) => {
@@ -133,7 +154,7 @@ export default function SideMenu() {
       if (item.requiredRole && userRole !== item.requiredRole) return false;
       return true;
     });
-  }, [session?.user, status]);
+  }, [session?.user, status, userRole]);
 
   if (status === "loading") {
     return (
@@ -165,21 +186,28 @@ export default function SideMenu() {
           </Link>
           {item.subItems && pathname.startsWith(item.href) && (
             <div className="ml-4 mt-1 space-y-1">
-              {item.subItems.map((subItem) => (
-                <Link
-                  key={subItem.href}
-                  href={subItem.href}
-                  className={cn(
-                    "flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors duration-150",
-                    pathname === subItem.href
-                      ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                      : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
-                  )}
-                >
-                  <subItem.icon className={cn("mr-3 h-5 w-5", subItem.color)} />
-                  {subItem.label}
-                </Link>
-              ))}
+              {item.subItems
+                .filter(
+                  (subItem) =>
+                    !(subItem.adminOnly && userRole !== UserRole.ADMIN)
+                )
+                .map((subItem) => (
+                  <Link
+                    key={subItem.href}
+                    href={subItem.href}
+                    className={cn(
+                      "flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors duration-150",
+                      pathname === subItem.href
+                        ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                        : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                    )}
+                  >
+                    <subItem.icon
+                      className={cn("mr-3 h-5 w-5", subItem.color)}
+                    />
+                    {subItem.label}
+                  </Link>
+                ))}
             </div>
           )}
         </div>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "../auth/auth.config";
+import { authOptions } from "../auth/[...nextauth]/auth";
 
 interface InventoryItem {
   id: string;

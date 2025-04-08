@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "scrape:transpondery": "node scripts/scrapers/scrapeTranspondery.js",
+    "scrape:uhs": "node scripts/scrapers/scrapeUHS.js",
+    "scrape:all": "npm run scrape:transpondery && npm run scrape:uhs",
+    "update:fccids": "node scripts/updateFccIds.js"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -34,6 +38,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "fast-xml-parser": "^5.2.0",
     "framer-motion": "^12.6.2",
     "fuse.js": "^7.1.0",
     "jose": "^6.0.10",
@@ -43,7 +48,7 @@
     "next-auth": "^4.24.11",
     "next-themes": "^0.2.1",
     "nodemailer": "^6.10.0",
-    "puppeteer": "^24.4.0",
+    "puppeteer": "^24.6.0",
     "react": "^18",
     "react-dom": "^18",
     "react-hot-toast": "^2.5.2",

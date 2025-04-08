@@ -1,0 +1,47 @@
+[
+  {
+    "make": "HONDA",
+    "model": "ACCORD",
+    "year": "2018-2023",
+    "transponderType": "Smart Key",
+    "fccId": "KR5V1X",
+    "source": "Transpondery.com",
+    "url": "https://www.transpondery.com/transponder_catalog/honda_transponder_catalog.html"
+  },
+  {
+    "make": "FORD",
+    "model": "F-150",
+    "year": "2015-2020",
+    "transponderType": "Smart Key",
+    "fccId": "M3N-A2C31243300",
+    "source": "Transpondery.com",
+    "url": "https://www.transpondery.com/transponder_catalog/ford_transponder_catalog.html"
+  },
+  {
+    "make": "TOYOTA",
+    "model": "RAV4",
+    "year": "2019-2023",
+    "transponderType": "Smart Key",
+    "fccId": "HYQ14FBA",
+    "source": "Transpondery.com",
+    "url": "https://www.transpondery.com/transponder_catalog/toyota_transponder_catalog.html"
+  },
+  {
+    "make": "CHEVROLET",
+    "model": "SILVERADO",
+    "year": "2019-2022",
+    "transponderType": "Transponder Key",
+    "fccId": "HU100",
+    "source": "Transpondery.com",
+    "url": "https://www.transpondery.com/transponder_catalog/chevrolet_transponder_catalog.html"
+  },
+  {
+    "make": "CADILLAC",
+    "model": "ESCALADE",
+    "year": "1999-2000",
+    "transponderType": "VATS Key",
+    "fccId": "L2C0007T",
+    "source": "Transpondery.com",
+    "url": "https://www.transpondery.com/transponder_catalog/cadillac_transponder_catalog.html"
+  }
+]

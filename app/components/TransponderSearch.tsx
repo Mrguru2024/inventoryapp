@@ -25,7 +25,11 @@ import {
 import { TransponderKeyData } from "@/app/services/transponderService";
 import { FccService, FccData } from "@/app/services/fccService";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
-import { SearchIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import {
+  CheckIcon,
+  XMarkIcon,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
 import { Modal } from "@/app/components/ui/modal";
 
 // Create repository instances outside component to prevent recreation
@@ -234,6 +238,37 @@ export default function TransponderSearch() {
     });
   }, [transpondersData, searchTerm]);
 
+  // Add the displayedTransponders useMemo here BEFORE any conditional returns
+  const displayedTransponders = useMemo(() => {
+    // If there's a search term, use filteredTransponders
+    if (searchTerm) {
+      return filteredTransponders;
+    }
+
+    // If selections have been made, use the transpondersData from the query
+    // which already has the filters applied from the API
+    if (
+      selectedMake ||
+      selectedModel ||
+      selectedYear ||
+      selectedTransponderType
+    ) {
+      return transpondersData;
+    }
+
+    // Otherwise use the initial data
+    return transponders.length > 0 ? transponders : transpondersData;
+  }, [
+    filteredTransponders,
+    transpondersData,
+    transponders,
+    searchTerm,
+    selectedMake,
+    selectedModel,
+    selectedYear,
+    selectedTransponderType,
+  ]);
+
   // Memoize available makes from actual transponder data
   const availableMakes = useMemo(() => {
     // Use COMMON_US_MAKES instead of filtering from transponders
@@ -322,8 +357,53 @@ export default function TransponderSearch() {
         return;
       }
 
+      // First check if we already have an FCC ID in the transponder data
+      // This would be from our scraped and processed data
+      if (transponder.fccId) {
+        console.log(
+          `Using existing FCC ID from database: ${transponder.fccId}`
+        );
+
+        // Handle chipType properly based on its type
+        let chipTypeArray: string[] = [];
+        if (Array.isArray(transponder.chipType)) {
+          chipTypeArray = transponder.chipType;
+        } else if (typeof transponder.chipType === "string") {
+          chipTypeArray = transponder.chipType
+            .split(",")
+            .map((c: string) => c.trim());
+        }
+
+        // Handle compatibleParts properly based on its type
+        let compatiblePartsArray: string[] = [];
+        if (Array.isArray(transponder.compatibleParts)) {
+          compatiblePartsArray = transponder.compatibleParts;
+        } else if (typeof transponder.compatibleParts === "string") {
+          compatiblePartsArray = transponder.compatibleParts
+            .split(",")
+            .map((p: string) => p.trim());
+        }
+
+        setFccData([
+          {
+            fccId: transponder.fccId,
+            make: transponder.make,
+            model: transponder.model,
+            year: transponder.yearStart || 0,
+            chipType: chipTypeArray,
+            transponderType: transponder.transponderType,
+            compatibleParts: compatiblePartsArray,
+            frequency: transponder.frequency || "",
+            notes: transponder.notes || "",
+            source: "Database",
+          },
+        ]);
+        return;
+      }
+
+      // If no FCC ID in database, fetch from external sources
       const data = await fccService.getFccData(make, model, yearStart);
-      console.log("FCC data results:", data);
+      console.log("FCC data results from external sources:", data);
       setFccData(data);
     } catch (error) {
       console.error("Error fetching FCC data:", error);
@@ -607,13 +687,6 @@ export default function TransponderSearch() {
     );
   }
 
-  // Display the actual data
-  const displayedTransponders = searchTerm
-    ? filteredTransponders
-    : transponders.length > 0
-    ? transponders
-    : transpondersData;
-
   // Use the fetched transponders if React Query hasn't loaded yet
   const makes =
     availableMakes.length > 0
@@ -694,158 +767,200 @@ export default function TransponderSearch() {
         title={`${selectedTransponder.make} ${selectedTransponder.model} Details`}
       >
         <div className="space-y-4">
-          <div>
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300">
-              Make:
-            </h3>
-            <p className="text-gray-900 dark:text-gray-100">
-              {selectedTransponder.make}
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300">
-              Model:
-            </h3>
-            <p className="text-gray-900 dark:text-gray-100">
-              {selectedTransponder.model}
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300">
-              Year Range:
-            </h3>
-            <p className="text-gray-900 dark:text-gray-100">
-              {selectedTransponder.yearStart}
-              {selectedTransponder.yearEnd
-                ? ` - ${selectedTransponder.yearEnd}`
-                : " - Present"}
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300">
-              Transponder Type:
-            </h3>
-            <p className="text-gray-900 dark:text-gray-100">
-              {selectedTransponder.transponderType}
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300">
-              Chip Types:
-            </h3>
-            <p className="text-gray-900 dark:text-gray-100">
-              {Array.isArray(selectedTransponder.chipType)
-                ? selectedTransponder.chipType.join(", ")
-                : selectedTransponder.chipType || "N/A"}
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300">
-              Frequency:
-            </h3>
-            <p className="text-gray-900 dark:text-gray-100">
-              {selectedTransponder.frequency || "N/A"}
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300">
-              FCC ID:
-            </h3>
-            <div className="flex items-center space-x-2">
-              <p className="text-gray-900 dark:text-gray-100">
-                {selectedTransponder.fccId || "N/A"}
-              </p>
-              {selectedTransponder.fccId && (
-                <a
-                  href={`https://fccid.io/${selectedTransponder.fccId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  (View FCC Data)
-                </a>
+          <div className="flex flex-col md:flex-row w-full gap-4">
+            <div className="w-full md:w-1/2">
+              <div className="mb-4">
+                <strong>Make:</strong> {selectedTransponder?.make}
+              </div>
+              <div className="mb-4">
+                <strong>Model:</strong> {selectedTransponder?.model}
+              </div>
+              <div className="mb-4">
+                <strong>Year:</strong>{" "}
+                {selectedTransponder?.yearStart
+                  ? `${selectedTransponder.yearStart}${
+                      selectedTransponder.yearEnd
+                        ? ` - ${selectedTransponder.yearEnd}`
+                        : ""
+                    }`
+                  : "N/A"}
+              </div>
+              <div className="mb-4">
+                <strong>Type:</strong>{" "}
+                {selectedTransponder?.transponderType || "N/A"}
+              </div>
+              <div className="mb-4">
+                <strong>FCC ID:</strong>{" "}
+                {selectedTransponder?.fccId || "Not available"}
+              </div>
+              <div className="mb-4">
+                <strong>Chip Type:</strong>{" "}
+                {Array.isArray(selectedTransponder?.chipType) &&
+                selectedTransponder.chipType.length > 0
+                  ? selectedTransponder.chipType.join(", ")
+                  : typeof selectedTransponder?.chipType === "string"
+                  ? selectedTransponder.chipType
+                  : "N/A"}
+              </div>
+            </div>
+            <div className="w-full md:w-1/2">
+              <div>
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300">
+                  Make:
+                </h3>
+                <p className="text-gray-900 dark:text-gray-100">
+                  {selectedTransponder.make}
+                </p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300">
+                  Model:
+                </h3>
+                <p className="text-gray-900 dark:text-gray-100">
+                  {selectedTransponder.model}
+                </p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300">
+                  Year Range:
+                </h3>
+                <p className="text-gray-900 dark:text-gray-100">
+                  {selectedTransponder.yearStart}
+                  {selectedTransponder.yearEnd
+                    ? ` - ${selectedTransponder.yearEnd}`
+                    : " - Present"}
+                </p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300">
+                  Transponder Type:
+                </h3>
+                <p className="text-gray-900 dark:text-gray-100">
+                  {selectedTransponder.transponderType}
+                </p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300">
+                  Chip Types:
+                </h3>
+                <p className="text-gray-900 dark:text-gray-100">
+                  {Array.isArray(selectedTransponder.chipType)
+                    ? selectedTransponder.chipType.join(", ")
+                    : selectedTransponder.chipType || "N/A"}
+                </p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300">
+                  Frequency:
+                </h3>
+                <p className="text-gray-900 dark:text-gray-100">
+                  {selectedTransponder.frequency || "N/A"}
+                </p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300">
+                  FCC ID:
+                </h3>
+                <div className="flex items-center space-x-2">
+                  <p className="text-gray-900 dark:text-gray-100">
+                    {selectedTransponder.fccId || "N/A"}
+                  </p>
+                  {selectedTransponder.fccId && (
+                    <a
+                      href={`https://fccid.io/${selectedTransponder.fccId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      (View FCC Data)
+                    </a>
+                  )}
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300">
+                  Compatible Parts:
+                </h3>
+                <p className="text-gray-900 dark:text-gray-100">
+                  {Array.isArray(selectedTransponder.compatibleParts)
+                    ? selectedTransponder.compatibleParts.join(", ")
+                    : selectedTransponder.compatibleParts || "N/A"}
+                </p>
+              </div>
+              {selectedTransponder.notes && (
+                <div>
+                  <h3 className="font-semibold text-gray-700 dark:text-gray-300">
+                    Notes:
+                  </h3>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    {selectedTransponder.notes}
+                  </p>
+                </div>
+              )}
+
+              {/* Display additional FCC data if available */}
+              {isFetchingFcc && (
+                <div className="flex items-center justify-center mt-4">
+                  <LoadingSpinner size="sm" />
+                  <span className="ml-2 text-gray-600 dark:text-gray-300">
+                    Fetching additional data...
+                  </span>
+                </div>
+              )}
+
+              {fccDataItem && (
+                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900 rounded-md">
+                  <h3 className="font-semibold text-blue-700 dark:text-blue-300">
+                    Additional Data from {fccDataItem.source}:
+                  </h3>
+                  <ul className="mt-2 space-y-1 text-gray-900 dark:text-gray-100">
+                    {fccDataItem.frequency && (
+                      <li>
+                        <span className="font-semibold">Frequency:</span>{" "}
+                        {fccDataItem.frequency}
+                      </li>
+                    )}
+                    {fccDataItem.chipType &&
+                      fccDataItem.chipType.length > 0 && (
+                        <li>
+                          <span className="font-semibold">Chip Types:</span>{" "}
+                          {fccDataItem.chipType.join(", ")}
+                        </li>
+                      )}
+                    {fccDataItem.compatibleParts &&
+                      fccDataItem.compatibleParts.length > 0 && (
+                        <li>
+                          <span className="font-semibold">
+                            Compatible Parts:
+                          </span>{" "}
+                          {fccDataItem.compatibleParts.join(", ")}
+                        </li>
+                      )}
+                    {fccDataItem.price && (
+                      <li>
+                        <span className="font-semibold">Price:</span> $
+                        {fccDataItem.price.toFixed(2)}
+                      </li>
+                    )}
+                    {fccDataItem.notes && (
+                      <li>
+                        <span className="font-semibold">Notes:</span>{" "}
+                        {fccDataItem.notes}
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              {fccData && fccData.length === 0 && !isFetchingFcc && (
+                <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900 rounded-md">
+                  <p className="text-yellow-700 dark:text-yellow-300">
+                    No additional data found from external sources.
+                  </p>
+                </div>
               )}
             </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300">
-              Compatible Parts:
-            </h3>
-            <p className="text-gray-900 dark:text-gray-100">
-              {Array.isArray(selectedTransponder.compatibleParts)
-                ? selectedTransponder.compatibleParts.join(", ")
-                : selectedTransponder.compatibleParts || "N/A"}
-            </p>
-          </div>
-          {selectedTransponder.notes && (
-            <div>
-              <h3 className="font-semibold text-gray-700 dark:text-gray-300">
-                Notes:
-              </h3>
-              <p className="text-gray-900 dark:text-gray-100">
-                {selectedTransponder.notes}
-              </p>
-            </div>
-          )}
-
-          {/* Display additional FCC data if available */}
-          {isFetchingFcc && (
-            <div className="flex items-center justify-center mt-4">
-              <LoadingSpinner size="sm" />
-              <span className="ml-2 text-gray-600 dark:text-gray-300">
-                Fetching additional data...
-              </span>
-            </div>
-          )}
-
-          {fccDataItem && (
-            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900 rounded-md">
-              <h3 className="font-semibold text-blue-700 dark:text-blue-300">
-                Additional Data from {fccDataItem.source}:
-              </h3>
-              <ul className="mt-2 space-y-1 text-gray-900 dark:text-gray-100">
-                {fccDataItem.frequency && (
-                  <li>
-                    <span className="font-semibold">Frequency:</span>{" "}
-                    {fccDataItem.frequency}
-                  </li>
-                )}
-                {fccDataItem.chipType && fccDataItem.chipType.length > 0 && (
-                  <li>
-                    <span className="font-semibold">Chip Types:</span>{" "}
-                    {fccDataItem.chipType.join(", ")}
-                  </li>
-                )}
-                {fccDataItem.compatibleParts &&
-                  fccDataItem.compatibleParts.length > 0 && (
-                    <li>
-                      <span className="font-semibold">Compatible Parts:</span>{" "}
-                      {fccDataItem.compatibleParts.join(", ")}
-                    </li>
-                  )}
-                {fccDataItem.price && (
-                  <li>
-                    <span className="font-semibold">Price:</span> $
-                    {fccDataItem.price.toFixed(2)}
-                  </li>
-                )}
-                {fccDataItem.notes && (
-                  <li>
-                    <span className="font-semibold">Notes:</span>{" "}
-                    {fccDataItem.notes}
-                  </li>
-                )}
-              </ul>
-            </div>
-          )}
-
-          {fccData && fccData.length === 0 && !isFetchingFcc && (
-            <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900 rounded-md">
-              <p className="text-yellow-700 dark:text-yellow-300">
-                No additional data found from external sources.
-              </p>
-            </div>
-          )}
         </div>
       </Modal>
     );

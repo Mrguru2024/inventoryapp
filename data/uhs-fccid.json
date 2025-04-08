@@ -1,0 +1,33 @@
+[
+  {
+    "title": "Honda Civic Smart Key",
+    "make": "HONDA",
+    "model": "CIVIC",
+    "year": "2016-2022",
+    "transponderType": "Smart Key",
+    "fccId": "KR5V2X",
+    "link": "https://www.uhshardware.com/products/honda-civic-smart-key",
+    "source": "UHS Hardware",
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0266/9655/products/honda-civic-smart-key.jpg"
+  },
+  {
+    "title": "Toyota Camry Transponder Key",
+    "make": "TOYOTA",
+    "model": "CAMRY",
+    "year": "2012-2017",
+    "transponderType": "Transponder Key",
+    "fccId": "HYQ12BDM",
+    "link": "https://www.uhshardware.com/products/toyota-camry-transponder",
+    "source": "UHS Hardware"
+  },
+  {
+    "title": "Cadillac Escalade VATS Key",
+    "make": "CADILLAC",
+    "model": "ESCALADE",
+    "year": "1999-2000",
+    "transponderType": "VATS Key",
+    "fccId": "L2C0007T",
+    "link": "https://www.uhshardware.com/products/cadillac-escalade-vats",
+    "source": "UHS Hardware"
+  }
+]

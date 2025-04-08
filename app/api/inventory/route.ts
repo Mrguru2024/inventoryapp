@@ -1,18 +1,26 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth.config";
+import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { UserRole } from "@/app/lib/auth/types";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
-    const userRole = session.user.role;
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      });
+    }
+
+    const userRole = session.user.role as UserRole;
     let where = {};
     const include = {
       technician: {
@@ -20,18 +28,22 @@ export async function GET() {
           name: true,
         },
       },
-      createdByUser: {
+      transponderKey: {
         select: {
-          name: true,
+          make: true,
+          model: true,
+          yearStart: true,
+          yearEnd: true,
+          transponderType: true,
         },
       },
     };
 
-    if (userRole === "TECHNICIAN") {
+    if (userRole === UserRole.TECHNICIAN) {
       where = {
         OR: [{ technicianId: session.user.id }, { status: "APPROVED" }],
       };
-    } else if (userRole === "USER") {
+    } else if (userRole === UserRole.CUSTOMER) {
       where = {
         status: "APPROVED",
       };
@@ -45,12 +57,25 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(inventory);
+    return NextResponse.json(inventory, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
   } catch (error) {
     console.error("Error fetching inventory:", error);
     return NextResponse.json(
       { error: "Failed to fetch inventory" },
-      { status: 500 }
+      {
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      }
     );
   }
 }
@@ -131,11 +156,6 @@ export async function POST(request: Request) {
       notes,
       status: userRole === "ADMIN" ? "APPROVED" : "PENDING",
       technician: {
-        connect: {
-          id: session.user.id,
-        },
-      },
-      createdByUser: {
         connect: {
           id: session.user.id,
         },

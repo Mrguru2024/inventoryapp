@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/auth.config";
+import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
 import { UserRole } from "@/app/lib/auth/types";
 
 export function withRoleCheck<T extends { params: Record<string, any> }>(

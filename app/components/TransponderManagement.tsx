@@ -5,10 +5,7 @@ import { useSession } from "next-auth/react";
 import TransponderIdentifier from "./TransponderIdentifier";
 import TransponderInventoryManager from "./TransponderInventoryManager";
 import ProgrammingGuideGenerator from "./ProgrammingGuideGenerator";
-import {
-  TransponderKeyData,
-  TransponderSearchParams,
-} from "@/app/services/transponderService";
+import { TransponderKeyData } from "@/app/services/transponderService";
 import { TransponderInventoryItem } from "@/app/services/transponderInventoryService";
 import { useToast } from "@/app/components/ui/use-toast";
 import LoadingSpinner from "./LoadingSpinner";
@@ -284,11 +281,28 @@ const COMMON_US_MODELS = {
   Genesis: ["G70", "G80", "G90", "GV70", "GV80", "GV60"],
 };
 
+// Update the Session interface at the top of the file
+interface Session {
+  user: {
+    id: string;
+    email?: string | null;
+    name?: string | null;
+    role: string;
+  };
+  expires: string;
+}
+
+// Update the TransponderSearchParams interface
+interface TransponderSearchParams {
+  make?: string;
+  model?: string;
+  year?: string;
+  transponderType?: "SMART" | "TRANSPONDER" | "REMOTE" | string;
+  search?: string;
+}
+
 export default function TransponderManagement() {
   const { data: session, status: sessionStatus } = useSession();
-  const [transponderData, setTransponderData] = useState<TransponderKeyData[]>(
-    []
-  );
   const [inventoryLevels, setInventoryLevels] = useState<
     TransponderInventoryItem[]
   >([]);
@@ -310,73 +324,54 @@ export default function TransponderManagement() {
   const [selectedTransponderDetails, setSelectedTransponderDetails] =
     useState<TransponderKeyData | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
 
   const queryClient = useQueryClient();
 
-  // Memoize the loadData function to prevent recreation on every render
-  const loadData = useCallback(async () => {
-    if (!session?.accessToken) {
-      setLoadingStatus("error");
-      setError("No authentication token available");
-      return;
-    }
+  // Update the useQuery implementation
+  const { data: transponders = [], isLoading: isTranspondersLoading } =
+    useQuery({
+      queryKey: ["transponders", searchParams] as const,
+      queryFn: async () => {
+        if (!session?.user) {
+          console.log("No session available");
+          return [] as TransponderKeyData[];
+        }
 
-    try {
-      setLoadingStatus("loading");
-      const [transpondersResponse, inventoryResponse] = await Promise.all([
-        fetch("/api/transponders", {
-          headers: {
-            Authorization: `Bearer ${session.accessToken}`,
-          },
-        }),
-        fetch("/api/inventory", {
-          headers: {
-            Authorization: `Bearer ${session.accessToken}`,
-          },
-        }),
-      ]);
+        try {
+          const queryParams = new URLSearchParams();
+          if (searchParams.make) queryParams.append("make", searchParams.make);
+          if (searchParams.model)
+            queryParams.append("model", searchParams.model);
+          if (searchParams.year) queryParams.append("year", searchParams.year);
+          if (searchParams.transponderType)
+            queryParams.append("transponderType", searchParams.transponderType);
 
-      if (!transpondersResponse.ok || !inventoryResponse.ok) {
-        throw new Error("Failed to fetch data");
-      }
+          const response = await fetch(
+            `/api/transponders?${queryParams.toString()}`
+          );
 
-      const [transpondersData, inventoryData] = await Promise.all([
-        transpondersResponse.json(),
-        inventoryResponse.json(),
-      ]);
+          if (!response.ok) {
+            throw new Error(await response.text());
+          }
 
-      if (
-        !Array.isArray(transpondersData.transponders) ||
-        !Array.isArray(inventoryData.inventory)
-      ) {
-        throw new Error("Invalid data format received");
-      }
+          const data = await response.json();
+          return data as TransponderKeyData[];
+        } catch (error) {
+          console.error("Error fetching transponders:", error);
+          return [] as TransponderKeyData[];
+        }
+      },
+      staleTime: 5 * 60 * 1000,
+      enabled: !!session?.user,
+    });
 
-      // Batch state updates to prevent multiple re-renders
-      setTransponderData(transpondersData.transponders);
-      setInventoryLevels(inventoryData.inventory);
-      setLoadingStatus("success");
-    } catch (error) {
-      console.error("Error loading data:", error);
-      setLoadingStatus("error");
-      setError(error instanceof Error ? error.message : "Failed to load data");
-    }
-  }, [session?.accessToken]);
-
-  // Use a ref to track the initial load
-  const initialLoadRef = useRef(false);
-
-  // Load data only once when component mounts or session changes
-  useEffect(() => {
-    if (session?.accessToken && !initialLoadRef.current) {
-      initialLoadRef.current = true;
-      loadData();
-    }
-  }, [session?.accessToken, loadData]);
-
-  // Filter transponder data based on search params
+  // Update the filter function with proper types
   const filteredTransponderData = useMemo(() => {
-    return transponderData.filter((t) => {
+    if (!transponders) return [];
+
+    return transponders.filter((t: TransponderKeyData) => {
       if (
         searchParams.make &&
         t.make.toLowerCase() !== searchParams.make.toLowerCase()
@@ -389,62 +384,112 @@ export default function TransponderManagement() {
         return false;
       if (searchParams.year) {
         const yearNum = parseInt(searchParams.year);
-        if ("yearStart" in t && typeof t.yearStart === "number") {
+        if (t.yearStart && typeof t.yearStart === "number") {
           if (t.yearStart > yearNum) return false;
-          if (
-            "yearEnd" in t &&
-            typeof t.yearEnd === "number" &&
-            t.yearEnd < yearNum
-          )
+          if (t.yearEnd && typeof t.yearEnd === "number" && t.yearEnd < yearNum)
             return false;
         }
       }
+      if (
+        searchParams.transponderType &&
+        t.transponderType !== searchParams.transponderType
+      )
+        return false;
       return true;
     });
-  }, [transponderData, searchParams]);
+  }, [transponders, searchParams]);
+
+  // Update the handlers to prevent cascading updates
+  const handleMakeChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const make = e.target.value;
+      setSelectedMake(make);
+      setSelectedModel("");
+      setSelectedYear("");
+      setSearchParams((prev) => ({
+        ...prev,
+        make: make || undefined,
+        model: undefined,
+        year: undefined,
+      }));
+    },
+    []
+  );
+
+  const handleModelChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const model = e.target.value;
+      setSelectedModel(model);
+      setSelectedYear("");
+      setSearchParams((prev) => ({
+        ...prev,
+        model: model || undefined,
+        year: undefined,
+      }));
+    },
+    []
+  );
+
+  const handleYearChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const year = e.target.value;
+      setSelectedYear(year);
+      setSearchParams((prev) => ({
+        ...prev,
+        year: year || undefined,
+      }));
+    },
+    []
+  );
 
   // Update the getUniqueMakes function to use COMMON_US_MAKES directly
   const getUniqueMakes = useMemo(() => {
     return COMMON_US_MAKES.sort();
   }, []);
 
-  // Update the getModelsForMake function to filter for common models
+  // Update the getModelsForMake function with proper typing
   const getModelsForMake = useCallback(
-    (make: string) => {
+    (make: string): string[] => {
       if (!make) return [];
       const models = Array.from(
         new Set(
-          transponderData
-            .filter((t) => t.make.toLowerCase() === make.toLowerCase())
-            .map((t) => t.model)
+          transponders
+            .filter(
+              (t: TransponderKeyData) =>
+                t.make.toLowerCase() === make.toLowerCase()
+            )
+            .map((t: TransponderKeyData) => t.model)
         )
       );
       return models.sort();
     },
-    [transponderData]
+    [transponders]
   );
 
-  // Update the getYearsForMakeAndModel function to include years 1985-2025
+  // Update the getYearsForMakeAndModel function with proper typing
   const getYearsForMakeAndModel = useCallback(
-    (make: string, model: string) => {
+    (make: string, model: string): string[] => {
       if (!make || !model) return [];
       const years = Array.from(
         new Set(
-          transponderData
+          transponders
             .filter(
-              (t) =>
+              (t: TransponderKeyData) =>
                 t.make.toLowerCase() === make.toLowerCase() &&
                 t.model.toLowerCase() === model.toLowerCase()
             )
-            .map((t) => t.yearStart)
+            .map((t: TransponderKeyData) => t.yearStart)
         )
-      ).filter((year) => year >= 1985 && year <= 2025); // Focus on vehicles from 1985 to 2025
-      return years.sort((a, b) => b - a); // Sort in descending order
+      ).filter(
+        (year): year is number =>
+          typeof year === "number" && year >= 1985 && year <= 2025
+      );
+      return years.map(String).sort((a, b) => parseInt(b) - parseInt(a));
     },
-    [transponderData]
+    [transponders]
   );
 
-  const handleSearch = useCallback((params: TransponderSearchParams) => {
+  const handleSearch = useCallback((params: any) => {
     // Convert year to string if it's a number
     const searchParams = {
       ...params,
@@ -455,69 +500,97 @@ export default function TransponderManagement() {
     setSelectedTransponder(null);
   }, []);
 
-  const handleUpdateStock = async (id: string, quantity: number) => {
-    if (!session?.accessToken) return;
+  // Update the loadData function
+  const loadData = useCallback(async () => {
+    if (!session?.user) return;
 
     try {
-      const response = await fetch(`/api/inventory/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.accessToken}`,
-        },
-        body: JSON.stringify({ quantity }),
-      });
+      const response = await fetch("/api/inventory");
 
       if (!response.ok) {
-        throw new Error("Failed to update stock");
+        throw new Error("Failed to load inventory data");
       }
 
-      await loadData(); // Refresh data
-      toast({
-        title: "Success",
-        description: "Stock updated successfully",
-      });
+      const data = await response.json();
+      setInventoryLevels(data);
     } catch (error) {
-      console.error("Error updating stock:", error);
+      console.error("Error loading inventory data:", error);
       toast({
         title: "Error",
-        description: "Failed to update stock",
+        description: "Failed to load inventory data",
         variant: "destructive",
       });
     }
-  };
+  }, [session?.user, toast]);
 
-  const handleOrderStock = async (item: TransponderInventoryItem) => {
-    if (!session?.accessToken) return;
+  // Update the stock handlers
+  const handleUpdateStock = useCallback(
+    async (id: string, quantity: number) => {
+      if (!session?.user) return;
 
-    try {
-      const response = await fetch(`/api/inventory/${item.id}/order`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.accessToken}`,
-        },
-        body: JSON.stringify(item),
-      });
+      try {
+        const response = await fetch(`/api/inventory/${id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ quantity }),
+        });
 
-      if (!response.ok) {
-        throw new Error("Failed to place order");
+        if (!response.ok) {
+          throw new Error("Failed to update stock");
+        }
+
+        await loadData();
+        toast({
+          title: "Success",
+          description: "Stock updated successfully",
+        });
+      } catch (error) {
+        console.error("Error updating stock:", error);
+        toast({
+          title: "Error",
+          description: "Failed to update stock",
+          variant: "destructive",
+        });
       }
+    },
+    [session?.user, loadData, toast]
+  );
 
-      await loadData(); // Refresh data
-      toast({
-        title: "Success",
-        description: "Stock order placed successfully",
-      });
-    } catch (error) {
-      console.error("Error ordering stock:", error);
-      toast({
-        title: "Error",
-        description: "Failed to place stock order",
-        variant: "destructive",
-      });
-    }
-  };
+  const handleOrderStock = useCallback(
+    async (item: TransponderInventoryItem) => {
+      if (!session?.user) return;
+
+      try {
+        const response = await fetch(`/api/inventory/${item.id}/order`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(item),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to place order");
+        }
+
+        await loadData();
+        toast({
+          title: "Success",
+          description: "Stock order placed successfully",
+        });
+      } catch (error) {
+        console.error("Error ordering stock:", error);
+        toast({
+          title: "Error",
+          description: "Failed to place stock order",
+          variant: "destructive",
+        });
+      }
+    },
+    [session?.user, loadData, toast]
+  );
 
   // Memoize filters to prevent unnecessary re-renders
   const filters = useMemo(() => {
@@ -546,39 +619,15 @@ export default function TransponderManagement() {
     []
   );
 
-  // Fetch transponders with optimized query
-  const { data: transponders = [], isLoading: queryLoading } = useQuery({
-    queryKey: ["transponders", filters],
-    queryFn: async () => {
-      if (!session?.accessToken) throw new Error("Not authenticated");
-
-      const response = await fetch("/api/transponders/search", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.accessToken}`,
-        },
-        body: JSON.stringify(filters),
-      });
-      if (!response.ok) throw new Error("Failed to fetch transponders");
-      return response.json();
-    },
-    staleTime: 5 * 60 * 1000, // Cache results for 5 minutes
-    keepPreviousData: true, // Keep showing previous results while loading
-    enabled: !!session?.accessToken, // Only run query when we have a token
-  });
-
-  // Delete transponder mutation
+  // Update the delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      if (!session?.accessToken) throw new Error("Not authenticated");
+      if (!session?.user) throw new Error("Not authenticated");
 
       const response = await fetch(`/api/transponders/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`,
-        },
       });
+
       if (!response.ok) throw new Error("Failed to delete transponder");
       return response.json();
     },
@@ -609,6 +658,62 @@ export default function TransponderManagement() {
     setIsDetailsModalOpen(true);
   };
 
+  // Update the useEffect hooks to prevent infinite loops
+  useEffect(() => {
+    if (!selectedMake || !transponders?.length) {
+      setAvailableModels([]);
+      return;
+    }
+
+    const models = Array.from(
+      new Set(
+        transponders
+          .filter((t) => t.make.toLowerCase() === selectedMake.toLowerCase())
+          .map((t) => t.model)
+      )
+    ).sort();
+
+    setAvailableModels(models);
+  }, [selectedMake, transponders]);
+
+  useEffect(() => {
+    if (!selectedMake || !selectedModel || !transponders?.length) {
+      setAvailableYears([]);
+      return;
+    }
+
+    const years = Array.from(
+      new Set(
+        transponders
+          .filter(
+            (t) =>
+              t.make.toLowerCase() === selectedMake.toLowerCase() &&
+              t.model.toLowerCase() === selectedModel.toLowerCase()
+          )
+          .map((t) => t.yearStart)
+          .filter(
+            (year): year is number =>
+              typeof year === "number" &&
+              year >= 1985 &&
+              year <= new Date().getFullYear()
+          )
+      )
+    )
+      .sort((a, b) => b - a)
+      .map(String);
+
+    setAvailableYears(years);
+  }, [selectedMake, selectedModel, transponders]);
+
+  // Update sortedTransponders to use transponders instead of transponderData
+  const sortedTransponders = useMemo(() => {
+    return [...transponders].sort((a, b) => {
+      const yearStartA = a.yearStart?.toString() || "";
+      const yearStartB = b.yearStart?.toString() || "";
+      return yearStartB.localeCompare(yearStartA);
+    });
+  }, [transponders]);
+
   if (loadingStatus === "loading") {
     return (
       <div className={styles.loadingContainer}>
@@ -619,408 +724,182 @@ export default function TransponderManagement() {
 
   return (
     <div className={styles.container}>
-      {loadingStatus === "loading" ? (
+      <h1 className={styles.header}>Transponder Management</h1>
+
+      <div className={styles.filtersContainer}>
+        <select
+          value={selectedMake}
+          onChange={handleMakeChange}
+          className={styles.select}
+          aria-label="Select vehicle make"
+        >
+          <option value="">Select Make</option>
+          {getUniqueMakes.map((make) => (
+            <option key={make} value={make}>
+              {make}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={selectedModel}
+          onChange={handleModelChange}
+          className={styles.select}
+          disabled={!selectedMake}
+          aria-label="Select vehicle model"
+        >
+          <option value="">Select Model</option>
+          {availableModels.map((model) => (
+            <option key={model} value={model}>
+              {model}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={selectedYear}
+          onChange={handleYearChange}
+          className={styles.select}
+          disabled={!selectedModel}
+          aria-label="Select vehicle year"
+        >
+          <option value="">Select Year</option>
+          {availableYears.map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={selectedTransponderType}
+          onChange={(e) => {
+            const type = e.target.value;
+            setSelectedTransponderType(type);
+            setSearchParams({
+              ...searchParams,
+              transponderType: type || undefined,
+            });
+          }}
+          className={styles.select}
+          aria-label="Select transponder type"
+        >
+          <option value="">Select Type</option>
+          <option value="SMART">Smart Key</option>
+          <option value="TRANSPONDER">Transponder Key</option>
+          <option value="REMOTE">Remote Key</option>
+        </select>
+      </div>
+
+      {isTranspondersLoading ? (
         <div className={styles.loadingContainer}>
           <LoadingSpinner />
         </div>
-      ) : (
-        <>
-          {/* Search and Filters Section */}
-          <div className={`${styles.searchSection} ${styles.cardHover}`}>
-            <div className={styles.searchContainer}>
-              <div className={styles.searchInput}>
-                <input
-                  type="text"
-                  placeholder="Search transponders..."
-                  value={searchTerm}
-                  onChange={(e) => debouncedSearch(e.target.value)}
-                  aria-label="Search transponders"
-                  className={styles.interactiveElement}
-                />
-              </div>
-              <button
-                onClick={() => {
-                  setSelectedMake("");
-                  setSelectedModel("");
-                  setSelectedYear("");
-                  setSelectedTransponderType("");
-                  setSearchTerm("");
-                }}
-                className={`${styles.resetButton} ${styles.interactiveElement}`}
-              >
-                Reset Filters
-              </button>
-            </div>
-
-            <div className={styles.filtersGrid}>
-              {/* Make Select */}
-              <div className={styles.filterContainer}>
-                <label htmlFor="make-select" className={styles.filterLabel}>
-                  Make
-                </label>
-                <select
-                  id="make-select"
-                  className={`${styles.filterSelect} ${styles.interactiveElement}`}
-                  value={selectedMake}
-                  onChange={(e) => {
-                    setSelectedMake(e.target.value);
-                    setSelectedModel("");
-                  }}
-                  aria-label="Select vehicle make"
-                >
-                  <option value="">All Makes</option>
-                  {getUniqueMakes.map((make) => (
-                    <option key={make} value={make}>
-                      {make}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Model Select */}
-              <div className={styles.filterContainer}>
-                <label htmlFor="model-select" className={styles.filterLabel}>
-                  Model
-                </label>
-                <select
-                  id="model-select"
-                  className={`${styles.filterSelect} ${styles.filterSelectDisabled} ${styles.interactiveElement}`}
-                  value={selectedModel}
-                  onChange={(e) => setSelectedModel(e.target.value)}
-                  disabled={!selectedMake}
-                  aria-label="Select vehicle model"
-                >
-                  <option value="">All Models</option>
-                  {getModelsForMake(selectedMake).map((model) => (
-                    <option key={model} value={model}>
-                      {model}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Year Select */}
-              <div className={styles.filterContainer}>
-                <label htmlFor="year-select" className={styles.filterLabel}>
-                  Year
-                </label>
-                <select
-                  id="year-select"
-                  className={`${styles.filterSelect} ${styles.interactiveElement}`}
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  aria-label="Select vehicle year"
-                >
-                  <option value="">All Years</option>
-                  {getYearsForMakeAndModel(selectedMake, selectedModel)
-                    .sort((a, b) => b - a)
-                    .map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              {/* Transponder Type Select */}
-              <div className={styles.filterContainer}>
-                <label htmlFor="type-select" className={styles.filterLabel}>
-                  Transponder Type
-                </label>
-                <select
-                  id="type-select"
-                  className={`${styles.filterSelect} ${styles.interactiveElement}`}
-                  value={selectedTransponderType}
-                  onChange={(e) => setSelectedTransponderType(e.target.value)}
-                  aria-label="Select transponder type"
-                >
-                  <option value="">All Types</option>
-                  {Array.from(
-                    new Set(
-                      transponderData
-                        .filter((t: TransponderKeyData) => {
-                          if (
-                            selectedMake &&
-                            t.make.toLowerCase() !== selectedMake.toLowerCase()
-                          )
-                            return false;
-                          if (
-                            selectedModel &&
-                            t.model.toLowerCase() !==
-                              selectedModel.toLowerCase()
-                          )
-                            return false;
-                          if (
-                            selectedYear &&
-                            t.yearStart !== parseInt(selectedYear)
-                          )
-                            return false;
-                          return true;
-                        })
-                        .map((t) => t.transponderType)
-                    )
-                  ).map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Results Table */}
-          <div className={styles.tableContainer}>
-            <table className={styles.table}>
-              <thead className={styles.tableHeader}>
-                <tr>
-                  <th className={styles.tableHeaderCell}>Make</th>
-                  <th className={styles.tableHeaderCell}>Model</th>
-                  <th className={styles.tableHeaderCell}>Year Range</th>
-                  <th className={styles.tableHeaderCell}>Type</th>
-                  <th className={styles.tableHeaderCell}>Chip Types</th>
-                  <th className={styles.tableHeaderCell}>Actions</th>
-                </tr>
-              </thead>
-              <tbody className={styles.tableBody}>
-                {queryLoading ? (
-                  <tr>
-                    <td colSpan={6} className={styles.tableCell}>
-                      <LoadingSpinner />
-                    </td>
-                  </tr>
-                ) : filteredTransponders.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className={styles.tableCell}>
-                      No transponders found
-                    </td>
-                  </tr>
-                ) : (
-                  filteredTransponders.map(
-                    (transponder: TransponderKeyData) => (
-                      <tr
-                        key={transponder.id}
-                        className={`${styles.tableRow} ${styles.rowHover}`}
-                        onClick={() => handleTransponderSelect(transponder)}
-                        style={{ cursor: "pointer" }}
-                      >
-                        <td
-                          className={`${styles.tableCell} ${styles.tableCellBold}`}
-                        >
-                          {transponder.make}
-                        </td>
-                        <td className={styles.tableCell}>
-                          {transponder.model}
-                        </td>
-                        <td className={styles.tableCell}>
-                          {transponder.yearStart} -{" "}
-                          {transponder.yearEnd || "Present"}
-                        </td>
-                        <td className={styles.tableCell}>
-                          {transponder.transponderType}
-                        </td>
-                        <td className={styles.tableCell}>
-                          {Array.isArray(transponder.chipType)
-                            ? transponder.chipType.join(", ")
-                            : transponder.chipType}
-                        </td>
-                        <td className={styles.tableCell}>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedTransponder(transponder);
-                            }}
-                            className={`${styles.actionButton} ${styles.interactiveElement}`}
-                            title="Edit transponder"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteMutation.mutate(transponder.id);
-                            }}
-                            className={`${styles.deleteButton} ${styles.interactiveElement}`}
-                            title="Delete transponder"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  )
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Selected Transponder Details */}
-          {selectedTransponder && (
-            <div className={styles.detailsContainer}>
-              <div className={`${styles.detailsCard} ${styles.cardHover}`}>
-                <h3 className={styles.detailsTitle}>
-                  {selectedTransponder.make} {selectedTransponder.model}
-                </h3>
-                <div className={styles.detailsGrid}>
-                  <div className={styles.detailsSection}>
-                    <div>
-                      <h4 className={styles.detailsLabel}>Years</h4>
-                      <p className={styles.detailsValue}>
-                        {selectedTransponder.yearStart} -{" "}
-                        {selectedTransponder.yearEnd || "Present"}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className={styles.detailsLabel}>Transponder Type</h4>
-                      <p className={styles.detailsValue}>
-                        {selectedTransponder.transponderType}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className={styles.detailsLabel}>Chip Types</h4>
-                      <div className="mt-1 flex flex-wrap gap-2">
-                        {Array.isArray(selectedTransponder.chipType)
-                          ? selectedTransponder.chipType.map((chip, index) => (
-                              <span key={index} className={styles.chipTag}>
-                                {chip}
-                              </span>
-                            ))
-                          : selectedTransponder.chipType}
-                      </div>
-                    </div>
+      ) : filteredTransponderData.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredTransponderData.map((transponder) => (
+            <div
+              key={transponder.id}
+              className={`${styles.detailsContainer} ${styles.cardHover}`}
+              onClick={() => handleTransponderSelect(transponder)}
+            >
+              <h3 className={styles.detailsTitle}>
+                {transponder.make} {transponder.model}
+              </h3>
+              <div className={styles.detailsGrid}>
+                <div className={styles.detailsSection}>
+                  <div>
+                    <h4 className={styles.detailsLabel}>Years</h4>
+                    <p className={styles.detailsValue}>
+                      {transponder.yearStart} -{" "}
+                      {transponder.yearEnd || "Present"}
+                    </p>
                   </div>
-                  <div className={styles.detailsSection}>
-                    {selectedTransponder.frequency && (
-                      <div>
-                        <h4 className={styles.detailsLabel}>Frequency</h4>
-                        <p className={styles.detailsValue}>
-                          {selectedTransponder.frequency}
-                        </p>
-                      </div>
-                    )}
-                    {selectedTransponder.compatibleParts && (
-                      <div>
-                        <h4 className={styles.detailsLabel}>
-                          Compatible Parts
-                        </h4>
-                        <div className="mt-1 flex flex-wrap gap-2">
-                          {Array.isArray(selectedTransponder.compatibleParts)
-                            ? selectedTransponder.compatibleParts.map(
-                                (part, index) => (
-                                  <span key={index} className={styles.partTag}>
-                                    {part}
-                                  </span>
-                                )
-                              )
-                            : selectedTransponder.compatibleParts}
-                        </div>
-                      </div>
-                    )}
-                    {selectedTransponder.notes && (
-                      <div>
-                        <h4 className={styles.detailsLabel}>Notes</h4>
-                        <p className={styles.detailsValue}>
-                          {selectedTransponder.notes}
-                        </p>
-                      </div>
-                    )}
+                  <div>
+                    <h4 className={styles.detailsLabel}>Transponder Type</h4>
+                    <p className={styles.detailsValue}>
+                      {transponder.transponderType}
+                    </p>
                   </div>
                 </div>
               </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className={styles.noResults}>
+          No transponders found matching the selected criteria.
+        </div>
+      )}
 
-              {/* Programming Guide */}
-              <ProgrammingGuideGenerator transponder={selectedTransponder} />
-
-              {/* Inventory Management */}
-              <TransponderInventoryManager
-                inventory={inventoryLevels.filter(
-                  (item) =>
-                    item.transponderKey.id.toString() === selectedTransponder.id
-                )}
-                onUpdateStock={handleUpdateStock}
-                onOrderStock={handleOrderStock}
-              />
+      {/* Selected Transponder Details Modal */}
+      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+        <DialogContent className="bg-gray-800 border-gray-600 text-gray-50">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gray-50">
+              Transponder Details
+            </DialogTitle>
+          </DialogHeader>
+          {selectedTransponderDetails && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-300">Make</h4>
+                  <p className="text-gray-100">
+                    {selectedTransponderDetails.make}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-300">Model</h4>
+                  <p className="text-gray-100">
+                    {selectedTransponderDetails.model}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-300">
+                    Year Range
+                  </h4>
+                  <p className="text-gray-100">
+                    {selectedTransponderDetails.yearStart} -{" "}
+                    {selectedTransponderDetails.yearEnd || "Present"}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-300">
+                    Transponder Type
+                  </h4>
+                  <p className="text-gray-100">
+                    {selectedTransponderDetails.transponderType}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
 
-          {/* Add the details modal */}
-          <Dialog
-            open={isDetailsModalOpen}
-            onOpenChange={setIsDetailsModalOpen}
-          >
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Transponder Details</DialogTitle>
-              </DialogHeader>
-              {selectedTransponderDetails && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="font-medium text-gray-700">Make</h4>
-                      <p>{selectedTransponderDetails.make}</p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-700">Model</h4>
-                      <p>{selectedTransponderDetails.model}</p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-700">Year Range</h4>
-                      <p>
-                        {selectedTransponderDetails.yearStart} -{" "}
-                        {selectedTransponderDetails.yearEnd || "Present"}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-700">
-                        Transponder Type
-                      </h4>
-                      <p>{selectedTransponderDetails.transponderType}</p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-700">Chip Types</h4>
-                      <p>
-                        {Array.isArray(selectedTransponderDetails.chipType)
-                          ? selectedTransponderDetails.chipType.join(", ")
-                          : selectedTransponderDetails.chipType}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-700">Frequency</h4>
-                      <p>{selectedTransponderDetails.frequency || "N/A"}</p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-700">
-                        Compatible Parts
-                      </h4>
-                      <p>
-                        {Array.isArray(
-                          selectedTransponderDetails.compatibleParts
-                        )
-                          ? selectedTransponderDetails.compatibleParts.join(
-                              ", "
-                            )
-                          : selectedTransponderDetails.compatibleParts || "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-700">Dual System</h4>
-                      <p>
-                        {selectedTransponderDetails.dualSystem ? "Yes" : "No"}
-                      </p>
-                    </div>
-                  </div>
-                  {selectedTransponderDetails.notes && (
-                    <div>
-                      <h4 className="font-medium text-gray-700">Notes</h4>
-                      <p>{selectedTransponderDetails.notes}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
-        </>
-      )}
+// Add TransponderCard component if it's missing
+interface TransponderCardProps {
+  transponder: TransponderKeyData;
+  onSelect: (transponder: TransponderKeyData) => void;
+}
+
+function TransponderCard({ transponder, onSelect }: TransponderCardProps) {
+  return (
+    <div
+      className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => onSelect(transponder)}
+    >
+      <h3 className="text-lg font-semibold">
+        {transponder.make} {transponder.model}
+      </h3>
+      <p className="text-sm text-gray-600">
+        {transponder.yearStart} - {transponder.yearEnd || "Present"}
+      </p>
+      <p className="text-sm text-gray-600">{transponder.transponderType}</p>
     </div>
   );
 }

@@ -22,6 +22,7 @@ import { landRoverTransponderData } from "./seeds/landRoverTransponders";
 import { dodgeTransponderData } from "./seeds/dodgeTransponders";
 import { transponderUpdates2022 } from "./seeds/transponderUpdates2022";
 import { buickTransponderData } from "./seeds/buickTransponders";
+import { seedCadillacTransponders } from "./seeds/cadillacTransponders";
 import { FccService } from "../app/services/fccService";
 import { KeyDataService } from "../app/services/keyDataService";
 
@@ -364,6 +365,9 @@ async function main() {
 
       console.log("Created message:", message);
     }
+
+    // After all main data is processed, call the Cadillac seeder
+    await seedCadillacTransponders(prisma);
   } catch (error) {
     console.error("Error during seeding:", error);
     throw error;

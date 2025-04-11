@@ -367,35 +367,31 @@ export default function TransponderManagement() {
       enabled: !!session?.user,
     });
 
-  // Update the filter function with proper types
+  // Update the filter function with proper types and optimize memoization
   const filteredTransponderData = useMemo(() => {
-    if (!transponders) return [];
+    if (!transponders?.length) return [];
+
+    const { make, model, year, transponderType } = searchParams;
 
     return transponders.filter((t: TransponderKeyData) => {
-      if (
-        searchParams.make &&
-        t.make.toLowerCase() !== searchParams.make.toLowerCase()
-      )
-        return false;
-      if (
-        searchParams.model &&
-        t.model.toLowerCase() !== searchParams.model.toLowerCase()
-      )
-        return false;
-      if (searchParams.year) {
-        const yearNum = parseInt(searchParams.year);
+      const makeMatch = !make || t.make.toLowerCase() === make.toLowerCase();
+      const modelMatch =
+        !model || t.model.toLowerCase() === model.toLowerCase();
+      const typeMatch =
+        !transponderType || t.transponderType === transponderType;
+
+      let yearMatch = true;
+      if (year) {
+        const yearNum = parseInt(year);
         if (t.yearStart && typeof t.yearStart === "number") {
-          if (t.yearStart > yearNum) return false;
-          if (t.yearEnd && typeof t.yearEnd === "number" && t.yearEnd < yearNum)
-            return false;
+          yearMatch =
+            t.yearStart <= yearNum &&
+            (!t.yearEnd ||
+              (typeof t.yearEnd === "number" && t.yearEnd >= yearNum));
         }
       }
-      if (
-        searchParams.transponderType &&
-        t.transponderType !== searchParams.transponderType
-      )
-        return false;
-      return true;
+
+      return makeMatch && modelMatch && yearMatch && typeMatch;
     });
   }, [transponders, searchParams]);
 
@@ -592,23 +588,23 @@ export default function TransponderManagement() {
     [session?.user, loadData, toast]
   );
 
-  // Memoize filters to prevent unnecessary re-renders
-  const filters = useMemo(() => {
-    const filter: any = {};
-    if (selectedMake) filter.make = selectedMake;
-    if (selectedModel) filter.model = selectedModel;
-    if (selectedYear) filter.year = selectedYear;
-    if (selectedTransponderType)
-      filter.transponderType = selectedTransponderType;
-    if (searchTerm) filter.searchTerm = searchTerm;
-    return filter;
-  }, [
-    selectedMake,
-    selectedModel,
-    selectedYear,
-    selectedTransponderType,
-    searchTerm,
-  ]);
+  // Optimize the filters memo to prevent unnecessary updates
+  const filters = useMemo(
+    () => ({
+      make: selectedMake || undefined,
+      model: selectedModel || undefined,
+      year: selectedYear || undefined,
+      transponderType: selectedTransponderType || undefined,
+      searchTerm: searchTerm || undefined,
+    }),
+    [
+      selectedMake,
+      selectedModel,
+      selectedYear,
+      selectedTransponderType,
+      searchTerm,
+    ]
+  );
 
   // Update the debouncedSearch function
   const debouncedSearch = useCallback(
@@ -636,19 +632,22 @@ export default function TransponderManagement() {
     },
   });
 
-  // Memoize filtered results
+  // Optimize the filtered results to prevent deep recursion
   const filteredTransponders = useMemo(() => {
+    if (!searchTerm) return transponders;
+
+    const term = searchTerm.toLowerCase();
     return transponders.filter((t: TransponderKeyData) => {
-      if (!searchTerm) return true;
-      const term = searchTerm.toLowerCase();
-      return (
-        t.make.toLowerCase().includes(term) ||
-        t.model.toLowerCase().includes(term) ||
-        t.transponderType.toLowerCase().includes(term) ||
-        t.chipType.some((chip) => chip.toLowerCase().includes(term)) ||
-        t.compatibleParts.some((part) => part.toLowerCase().includes(term)) ||
-        (t.notes && t.notes.toLowerCase().includes(term))
-      );
+      const searchableFields = [
+        t.make,
+        t.model,
+        t.transponderType,
+        ...(t.chipType || []),
+        ...(t.compatibleParts || []),
+        t.notes || "",
+      ].map((field) => String(field).toLowerCase());
+
+      return searchableFields.some((field) => field.includes(term));
     });
   }, [transponders, searchTerm]);
 
@@ -658,51 +657,50 @@ export default function TransponderManagement() {
     setIsDetailsModalOpen(true);
   };
 
-  // Update the useEffect hooks to prevent infinite loops
+  // Update the models effect to be more efficient
   useEffect(() => {
     if (!selectedMake || !transponders?.length) {
       setAvailableModels([]);
       return;
     }
 
-    const models = Array.from(
-      new Set(
-        transponders
-          .filter((t) => t.make.toLowerCase() === selectedMake.toLowerCase())
-          .map((t) => t.model)
-      )
-    ).sort();
+    const makeLower = selectedMake.toLowerCase();
+    const models = new Set<string>();
 
-    setAvailableModels(models);
+    for (const t of transponders) {
+      if (t.make.toLowerCase() === makeLower) {
+        models.add(t.model);
+      }
+    }
+
+    setAvailableModels(Array.from(models).sort());
   }, [selectedMake, transponders]);
 
+  // Update the years effect to be more efficient
   useEffect(() => {
     if (!selectedMake || !selectedModel || !transponders?.length) {
       setAvailableYears([]);
       return;
     }
 
-    const years = Array.from(
-      new Set(
-        transponders
-          .filter(
-            (t) =>
-              t.make.toLowerCase() === selectedMake.toLowerCase() &&
-              t.model.toLowerCase() === selectedModel.toLowerCase()
-          )
-          .map((t) => t.yearStart)
-          .filter(
-            (year): year is number =>
-              typeof year === "number" &&
-              year >= 1985 &&
-              year <= new Date().getFullYear()
-          )
-      )
-    )
-      .sort((a, b) => b - a)
-      .map(String);
+    const makeLower = selectedMake.toLowerCase();
+    const modelLower = selectedModel.toLowerCase();
+    const years = new Set<string>();
+    const currentYear = new Date().getFullYear();
 
-    setAvailableYears(years);
+    for (const t of transponders) {
+      if (
+        t.make.toLowerCase() === makeLower &&
+        t.model.toLowerCase() === modelLower &&
+        typeof t.yearStart === "number" &&
+        t.yearStart >= 1985 &&
+        t.yearStart <= currentYear
+      ) {
+        years.add(t.yearStart.toString());
+      }
+    }
+
+    setAvailableYears(Array.from(years).sort((a, b) => Number(b) - Number(a)));
   }, [selectedMake, selectedModel, transponders]);
 
   // Update sortedTransponders to use transponders instead of transponderData

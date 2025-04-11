@@ -1,0 +1,49 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+📁 Project Context:
+- This app manages transponder key inventory and FCC ID compatibility for automotive locksmiths and technicians.
+- It includes FCC ID validation, real-time inventory, request tracking, user roles, and analytics.
+
+📦 Folder Structure:
+- Pages live in /app (Next.js App Router).
+- API endpoints live in /app/api.
+- Components live in /components using Modular Component Pattern.
+- Prisma models live in /prisma/schema.prisma.
+
+🔐 Authentication:
+- Use NextAuth with 3 roles: admin, manager, technician.
+- Admins can approve users, edit inventory, manage roles.
+- Managers can request keys, edit quantities.
+- Technicians can view specs and request inventory and manage their own inventory.
+
+🧠 Component Conventions:
+- FCC-related components are prefixed with `Fcc` (e.g., FccIdCard, FccValidator)
+- Inventory-related components are prefixed with `Stock` (e.g., StockItemCard, StockTable)
+- Request-related components are prefixed with `Req` (e.g., ReqStatusBadge, ReqForm)
+
+📊 Analytics & Tracking:
+- Include search term tracking, user activity logs, and performance metrics.
+- Analytics components should use the prefix `Track` or `Log`.
+
+🧪 FCC ID Validation Logic:
+- Validation logic should be inside `lib/validateFcc.ts`.
+- External sources used: transpondery.com, uhshardware.com, and custom databases.
+
+🔁 Inventory Management:
+- Inventory items include SKU, quantity, low stock threshold, price, purchase source.
+- Must display alerts for low stock.
+- Support for dual system inventory (chip + remote).
+
+📨 Request Workflow:
+- Requests include quantity, status, and approval workflow.
+- Status must be trackable: Pending → Approved/Denied → Fulfilled.
+
+📈 AI Component Prompts to Support:
+- "Create an FCC validator component"
+- "Build a request form with status stepper"
+- "Write test for StockItemCard with low stock logic"
+- "Scaffold a Prisma model for InventoryItem with purchaseSource field"
+- "Add Zustand store to handle request status updates"

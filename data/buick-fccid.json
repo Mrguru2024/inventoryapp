@@ -1,0 +1,26 @@
+[
+  {
+    "make": "BUICK",
+    "model": "CASCADA",
+    "year": "2016",
+    "transponderType": "Transponder Key",
+    "fccId": "BUICA16ZVD",
+    "frequency": "315 MHz",
+    "chipType": ["4D60"],
+    "compatibleParts": ["BUICA16ZVD", "BUICA16ZVD-1"],
+    "notes": "GM Global A platform",
+    "source": "GM Technical Database"
+  },
+  {
+    "make": "BUICK",
+    "model": "VERANO",
+    "year": "2012",
+    "transponderType": "Transponder Key",
+    "fccId": "BUIVE1207C",
+    "frequency": "315 MHz",
+    "chipType": ["4D60"],
+    "compatibleParts": ["BUIVE1207C", "BUIVE1207C-1"],
+    "notes": "GM Delta II platform",
+    "source": "GM Technical Database"
+  }
+]

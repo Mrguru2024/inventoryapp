@@ -1,0 +1,1 @@
+SELECT id FROM User WHERE role = 'ADMIN' LIMIT 1; 

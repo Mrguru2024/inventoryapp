@@ -15,8 +15,18 @@ async function updateFccIds() {
       "../data/transpondery-fccid.json"
     );
     const uhsDataPath = path.join(__dirname, "../data/uhs-fccid.json");
+    const buickDataPath = path.join(__dirname, "../data/buick-fccid.json");
+    const northcoastFobdepotPath = path.join(
+      __dirname,
+      "../data/northcoast-fobdepot-fccid.json"
+    );
 
-    if (!fs.existsSync(transponderyDataPath) || !fs.existsSync(uhsDataPath)) {
+    if (
+      !fs.existsSync(transponderyDataPath) ||
+      !fs.existsSync(uhsDataPath) ||
+      !fs.existsSync(buickDataPath) ||
+      !fs.existsSync(northcoastFobdepotPath)
+    ) {
       console.error(
         "❌ Scraped data files not found. Please run the scrapers first."
       );
@@ -25,6 +35,8 @@ async function updateFccIds() {
 
     let transponderyData = [];
     let uhsData = [];
+    let buickData = [];
+    let northcoastFobdepotData = [];
 
     try {
       transponderyData = JSON.parse(
@@ -46,6 +58,29 @@ async function updateFccIds() {
       uhsData = [];
     }
 
+    try {
+      buickData = JSON.parse(fs.readFileSync(buickDataPath, "utf8"));
+      console.log(`Loaded ${buickData.length} records from Buick database`);
+    } catch (err) {
+      console.error("Error parsing Buick data:", err);
+      buickData = [];
+    }
+
+    try {
+      northcoastFobdepotData = JSON.parse(
+        fs.readFileSync(northcoastFobdepotPath, "utf8")
+      );
+      console.log(
+        `Loaded ${northcoastFobdepotData.length} records from North Coast Keyless and Fob Depot`
+      );
+    } catch (err) {
+      console.error(
+        "Error parsing North Coast Keyless and Fob Depot data:",
+        err
+      );
+      northcoastFobdepotData = [];
+    }
+
     // Normalize and clean up the data before matching
     const normalizeData = (data) => {
       return data
@@ -64,9 +99,13 @@ async function updateFccIds() {
 
     const normalizedTransponderyData = normalizeData(transponderyData);
     const normalizedUhsData = normalizeData(uhsData);
+    const normalizedBuickData = normalizeData(buickData);
+    const normalizedNorthcoastFobdepotData = normalizeData(
+      northcoastFobdepotData
+    );
 
     console.log(
-      `After normalization: ${normalizedTransponderyData.length} Transpondery records, ${normalizedUhsData.length} UHS records`
+      `After normalization: ${normalizedTransponderyData.length} Transpondery records, ${normalizedUhsData.length} UHS records, ${normalizedBuickData.length} Buick records, ${normalizedNorthcoastFobdepotData.length} North Coast/Fob Depot records`
     );
 
     // Get all transponders from database
@@ -157,9 +196,23 @@ async function updateFccIds() {
         normalizedMake,
         normalizedModel
       );
+      const buickMatch = findBestMatch(
+        normalizedBuickData,
+        normalizedMake,
+        normalizedModel
+      );
+      const northcoastFobdepotMatch = findBestMatch(
+        normalizedNorthcoastFobdepotData,
+        normalizedMake,
+        normalizedModel
+      );
 
-      // Prefer Transpondery data, fallback to UHS data
-      const matchedFccId = transponderyMatch?.fccId || uhsMatch?.fccId;
+      // Prefer Transpondery data, fallback to UHS data, then Buick data, then North Coast/Fob Depot
+      const matchedFccId =
+        transponderyMatch?.fccId ||
+        uhsMatch?.fccId ||
+        buickMatch?.fccId ||
+        northcoastFobdepotMatch?.fccId;
 
       if (
         matchedFccId &&

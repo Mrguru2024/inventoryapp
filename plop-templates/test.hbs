@@ -1,0 +1,14 @@
+import { render, screen } from '@testing-library/react';
+import {{pascalCase name}} from './index';
+
+describe('{{pascalCase name}}', () => {
+  it('renders the title', () => {
+    render(<{{pascalCase name}} title="Test Title" />);
+    expect(screen.getByText('Test Title')).toBeInTheDocument();
+  });
+
+  it('applies custom className', () => {
+    render(<{{pascalCase name}} title="Test Title" className="custom-class" />);
+    expect(screen.getByText('Test Title').parentElement).toHaveClass('custom-class');
+  });
+}); 

@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["extendedWhereUnique"]
 }
 
@@ -21,8 +21,7 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
@@ -39,23 +38,23 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          String    @default("USER") // USER, TECHNICIAN, ADMIN, SUPER_ADMIN
-  isApproved    Boolean   @default(false)
-  accounts      Account[]
-  sessions      Session[]
-  messages      Message[] @relation("SentMessages")
-  receivedMessages Message[] @relation("ReceivedMessages")
-  technicianInventory Inventory[] @relation("TechnicianInventory")
-  createdInventory Inventory[] @relation("CreatedInventory")
-  requests      Request[]
-  notifications Notification[]
-  activities    Activity[]
+  id                  String         @id @default(cuid())
+  name                String?
+  email               String?        @unique
+  emailVerified       DateTime?
+  image               String?
+  password            String?
+  role                String         @default("USER")
+  isApproved          Boolean        @default(false)
+  accounts            Account[]
+  activities          Activity[]
+  createdInventory    Inventory[]    @relation("CreatedInventory")
+  technicianInventory Inventory[]    @relation("TechnicianInventory")
+  receivedMessages    Message[]      @relation("ReceivedMessages")
+  messages            Message[]      @relation("SentMessages")
+  notifications       Notification[]
+  requests            Request[]
+  sessions            Session[]
 }
 
 model VerificationToken {
@@ -71,64 +70,61 @@ model Message {
   content     String   @db.Text
   createdAt   DateTime @default(now())
   isRead      Boolean  @default(false)
-  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
   senderId    String
-  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id])
   recipientId String
+  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id])
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
 
   @@index([senderId])
   @@index([recipientId])
 }
 
 model Inventory {
-  id                String   @id @default(cuid())
-  sku               String   @unique
+  id                String          @id @default(cuid())
+  sku               String          @unique
   brand             String
   model             String
-  stockCount        Int      @default(0)
-  lowStockThreshold Int      @default(5)
+  stockCount        Int             @default(0)
+  lowStockThreshold Int             @default(5)
   price             Float
   fccId             String?
   frequency         String?
   purchaseSource    String?
-  isSmartKey        Boolean  @default(false)
-  isTransponderKey  Boolean  @default(false)
+  isSmartKey        Boolean         @default(false)
+  isTransponderKey  Boolean         @default(false)
+  isDualSystem      Boolean         @default(false)
   carMake           String?
   carModel          String?
   carYear           Int?
   notes             String?
-  status            String   @default("PENDING")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  status            String          @default("ACTIVE")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  createdById       String
+  createdBy         User            @relation("CreatedInventory", fields: [createdById], references: [id])
   technicianId      String?
-  createdBy         String?
-  technician        User?    @relation("TechnicianInventory", fields: [technicianId], references: [id])
-  creator           User?    @relation("CreatedInventory", fields: [createdBy], references: [id])
+  technician        User?           @relation("TechnicianInventory", fields: [technicianId], references: [id])
   requests          Request[]
-  transponderKey    TransponderKey? @relation("TransponderKeyToInventory", fields: [transponderKeyId], references: [id])
   transponderKeyId  String?
+  transponderKey    TransponderKey? @relation("TransponderKeyToInventory", fields: [transponderKeyId], references: [id])
 
-  @@index([brand], name: "Inventory_brand_idx")
-  @@index([model], name: "Inventory_model_idx")
-  @@index([carMake], name: "Inventory_carMake_idx")
-  @@index([carModel], name: "Inventory_carModel_idx")
-  @@index([carYear], name: "Inventory_carYear_idx")
-  @@index([fccId], name: "Inventory_fccId_idx")
-  @@index([technicianId], name: "Inventory_technicianId_idx")
-  @@index([createdBy], name: "Inventory_createdBy_idx")
-  @@index([transponderKeyId], name: "Inventory_transponderKeyId_idx")
+  @@index([createdById])
+  @@index([technicianId])
+  @@index([status])
+  @@index([sku])
+  @@index([transponderKeyId])
 }
 
 model Request {
-  id               String    @id @default(cuid())
-  technician       User      @relation(fields: [technicianId], references: [id])
-  technicianId     String
-  item             Inventory @relation(fields: [inventoryId], references: [id])
-  inventoryId      String
+  id                String    @id @default(cuid())
+  technicianId      String
+  inventoryId       String
   quantityRequested Int
-  status           String    @default("PENDING") // PENDING, APPROVED, REJECTED
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  status            String    @default("PENDING")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  item              Inventory @relation(fields: [inventoryId], references: [id])
+  technician        User      @relation(fields: [technicianId], references: [id])
 
   @@index([technicianId])
   @@index([inventoryId])
@@ -137,53 +133,53 @@ model Request {
 model Notification {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
   message   String   @db.Text
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }
 
 model TransponderKey {
-  id              String   @id @default(cuid())
+  id              String                @id @default(cuid())
   make            String
   model           String
   yearStart       Int
   yearEnd         Int?
   transponderType String
-  chipType        String   @db.Text
-  compatibleParts String   @db.Text
+  chipType        String                @db.Text
+  compatibleParts String                @db.Text
   frequency       String?
   notes           String?
-  dualSystem      Boolean  @default(false)
+  dualSystem      Boolean               @default(false)
   fccId           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  inventoryItems  Inventory[]           @relation("TransponderKeyToInventory")
   inventory       TransponderInventory?
-  inventoryItems  Inventory[]          @relation("TransponderKeyToInventory")
 
-  @@index([make], name: "TransponderKey_make_idx")
-  @@index([model], name: "TransponderKey_model_idx")
-  @@index([yearStart], name: "TransponderKey_yearStart_idx")
-  @@index([transponderType], name: "TransponderKey_transponderType_idx")
-  @@index([fccId], name: "TransponderKey_fccId_idx")
+  @@index([make])
+  @@index([model])
+  @@index([yearStart])
+  @@index([transponderType])
+  @@index([fccId])
 }
 
 model TransponderInventory {
-  id              String         @id @default(cuid())
-  transponderKey  TransponderKey @relation(fields: [transponderKeyId], references: [id])
-  transponderKeyId String        @unique
-  quantity        Int            @default(0)
-  minimumStock    Int            @default(5)
-  location        String
-  supplier        String
-  lastOrdered     DateTime?
-  notes           String?        @db.Text
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id               String         @id @default(cuid())
+  transponderKeyId String         @unique
+  quantity         Int            @default(0)
+  minimumStock     Int            @default(5)
+  location         String
+  supplier         String
+  lastOrdered      DateTime?
+  notes            String?        @db.Text
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  transponderKey   TransponderKey @relation(fields: [transponderKeyId], references: [id])
 
-  @@index([transponderKeyId], name: "TransponderInventory_transponderKeyId_idx")
+  @@index([transponderKeyId])
 }
 
 model SearchAnalytics {
@@ -203,21 +199,19 @@ model Activity {
   type        String
   description String   @db.Text
   timestamp   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id])
   userId      String
+  user        User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([timestamp])
 }
 
-enum Role {
-  ADMIN
-  TECHNICIAN
-  CUSTOMER
-}
+model FCCId {
+  id          String   @id
+  description String
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-enum Status {
-  PENDING
-  APPROVED
-  REJECTED
-} 
+  @@index([id])
+}

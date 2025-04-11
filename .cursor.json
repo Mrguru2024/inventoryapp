@@ -1,0 +1,29 @@
+{
+  "framework": "next",
+  "languages": ["typescript"],
+  "style": "tailwind",
+  "componentDirectory": "components",
+  "componentPattern": "modular",
+  "testFramework": "jest",
+  "stateManagement": "zustand",
+  "auth": "nextauth",
+  "backendFramework": "express",
+  "database": "prisma",
+  "aiPreferences": {
+    "generateTests": true,
+    "generateStories": true,
+    "useHooks": true,
+    "useInterfaces": true,
+    "preferServerComponents": true,
+    "componentTemplates": {
+      "path": "plop-templates",
+      "defaultTemplate": "component.hbs"
+    }
+  },
+  "rules": {
+    "componentNaming": "PascalCase",
+    "fileNaming": "kebab-case",
+    "testLocation": "same-directory",
+    "storyLocation": "same-directory"
+  }
+}

@@ -1,0 +1,19 @@
+import React from 'react';
+{{#if withStyles}}
+import styles from './{{pascalCase name}}.module.css';
+{{/if}}
+
+export interface {{pascalCase name}}Props {
+  title: string;
+  className?: string;
+}
+
+const {{pascalCase name}}: React.FC<{{pascalCase name}}Props> = ({ title, className }) => {
+  return (
+    <div className={`p-4 bg-white dark:bg-gray-900 border rounded-md shadow-sm ${className}`}>
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h2>
+    </div>
+  );
+};
+
+export default {{pascalCase name}}; 

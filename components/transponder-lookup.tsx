@@ -1,51 +1,94 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
-export function TransponderLookup() {
-  const [makes, setMakes] = useState<
-    Array<{ Make_ID: number; Make_Name: string }>
-  >([]);
+interface Transponder {
+  id: string;
+  name: string;
+  frequency: string;
+  description?: string;
+}
 
-  useEffect(() => {
-    fetchMakes();
-  }, []);
+interface TransponderLookupProps {
+  initialResults?: Transponder[];
+  isLoading?: boolean;
+  error?: string;
+  darkMode?: boolean;
+  onSelect?: (transponder: Transponder) => void;
+}
 
-  const fetchMakes = async () => {
-    try {
-      const response = await fetch("/api/vehicles/makes");
-      if (!response.ok) {
-        throw new Error("Failed to fetch makes");
-      }
-      const data = await response.json();
-      setMakes(data.Results);
-    } catch (error) {
-      console.error("Error fetching makes:", error);
+export default function TransponderLookup({
+  initialResults = [],
+  isLoading = false,
+  error,
+  darkMode = false,
+  onSelect,
+}: TransponderLookupProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [results, setResults] = useState(initialResults);
+
+  const handleSearch = () => {
+    // In a real implementation, this would make an API call
+    console.log("Searching for:", searchQuery);
+  };
+
+  const handleSelect = (transponder: Transponder) => {
+    if (onSelect) {
+      onSelect(transponder);
     }
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4">Transponder Lookup</h2>
-      <div className="space-y-4">
-        <div>
-          <label
-            htmlFor="make"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Make
-          </label>
-          <select
-            id="make"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          >
-            <option value="">Select a make</option>
-            {makes.map((make) => (
-              <option key={make.Make_ID} value={make.Make_ID}>
-                {make.Make_Name}
-              </option>
-            ))}
-          </select>
-        </div>
+    <div
+      data-testid="transponder-lookup"
+      className={`p-4 rounded-lg ${
+        darkMode ? "dark:bg-gray-800 text-white" : "bg-white text-gray-900"
+      }`}
+    >
+      <div className="flex gap-2 mb-4">
+        <Input
+          type="text"
+          placeholder="Search transponders..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1"
+        />
+        <Button onClick={handleSearch}>Search</Button>
       </div>
+
+      {isLoading ? (
+        <div data-testid="loading-skeleton" className="animate-pulse">
+          <div className="h-12 bg-gray-200 rounded mb-2"></div>
+          <div className="h-12 bg-gray-200 rounded mb-2"></div>
+          <div className="h-12 bg-gray-200 rounded"></div>
+        </div>
+      ) : error ? (
+        <div className="text-center py-4">
+          <p className="text-red-500">Error</p>
+          <p>{error}</p>
+        </div>
+      ) : results.length > 0 ? (
+        <div className="space-y-2">
+          {results.map((transponder) => (
+            <Card
+              key={transponder.id}
+              className="p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+              onClick={() => handleSelect(transponder)}
+            >
+              <h3 className="font-medium">{transponder.name}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {transponder.frequency}
+              </p>
+              {transponder.description && (
+                <p className="text-sm mt-1">{transponder.description}</p>
+              )}
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <p className="text-center py-4">No results found</p>
+      )}
     </div>
   );
 }

@@ -1,0 +1,3 @@
+Make,Model,Year,FCC ID,Frequency,Transponder Type,Chip Type,Compatible Parts,Notes,Price,Source URL
+Example: BUICK,CASCADA,2016,BUICA16ZVD,315 MHz,Transponder Key,4D60,"BUICA16ZVD,BUICA16ZVD-1","GM Global A platform",149.99,https://example.com/product
+Example: BUICK,VERANO,2012,BUIVE1207C,315 MHz,Transponder Key,4D60,"BUIVE1207C,BUIVE1207C-1","GM Delta II platform",129.99,https://example.com/product 

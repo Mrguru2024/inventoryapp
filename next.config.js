@@ -1,6 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  experimental: {
+    // Ensure SWC is used for compilation
+    forceSwcTransforms: true,
+  },
+  // Configure SWC
+  compiler: {
+    // Disable Babel
+    emotion: false,
+    styledComponents: false,
+    reactRemoveProperties: true,
+  },
   images: {
     domains: ["localhost"],
     remotePatterns: [

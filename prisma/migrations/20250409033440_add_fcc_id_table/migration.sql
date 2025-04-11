@@ -1,3 +1,7 @@
+-- AlterTable
+ALTER TABLE `TransponderKey` MODIFY `chipType` TEXT NOT NULL,
+    MODIFY `compatibleParts` TEXT NOT NULL;
+
 -- CreateTable
 CREATE TABLE `Account` (
     `id` VARCHAR(191) NOT NULL,
@@ -70,44 +74,6 @@ CREATE TABLE `Message` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `Inventory` (
-    `id` VARCHAR(191) NOT NULL,
-    `sku` VARCHAR(191) NOT NULL,
-    `brand` VARCHAR(191) NOT NULL,
-    `model` VARCHAR(191) NOT NULL,
-    `stockCount` INTEGER NOT NULL DEFAULT 0,
-    `lowStockThreshold` INTEGER NOT NULL DEFAULT 5,
-    `price` DOUBLE NOT NULL,
-    `fccId` VARCHAR(191) NULL,
-    `frequency` VARCHAR(191) NULL,
-    `purchaseSource` VARCHAR(191) NULL,
-    `isSmartKey` BOOLEAN NOT NULL DEFAULT false,
-    `isTransponderKey` BOOLEAN NOT NULL DEFAULT false,
-    `carMake` VARCHAR(191) NULL,
-    `carModel` VARCHAR(191) NULL,
-    `carYear` INTEGER NULL,
-    `notes` VARCHAR(191) NULL,
-    `status` VARCHAR(191) NOT NULL DEFAULT 'PENDING',
-    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updatedAt` DATETIME(3) NOT NULL,
-    `technicianId` VARCHAR(191) NULL,
-    `createdBy` VARCHAR(191) NULL,
-    `transponderKeyId` VARCHAR(191) NULL,
-
-    UNIQUE INDEX `Inventory_sku_key`(`sku`),
-    INDEX `Inventory_brand_idx`(`brand`),
-    INDEX `Inventory_model_idx`(`model`),
-    INDEX `Inventory_carMake_idx`(`carMake`),
-    INDEX `Inventory_carModel_idx`(`carModel`),
-    INDEX `Inventory_carYear_idx`(`carYear`),
-    INDEX `Inventory_fccId_idx`(`fccId`),
-    INDEX `Inventory_technicianId_idx`(`technicianId`),
-    INDEX `Inventory_createdBy_idx`(`createdBy`),
-    INDEX `Inventory_transponderKeyId_idx`(`transponderKeyId`),
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateTable
 CREATE TABLE `Request` (
     `id` VARCHAR(191) NOT NULL,
     `technicianId` VARCHAR(191) NOT NULL,
@@ -131,49 +97,6 @@ CREATE TABLE `Notification` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     INDEX `Notification_userId_idx`(`userId`),
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateTable
-CREATE TABLE `TransponderKey` (
-    `id` VARCHAR(191) NOT NULL,
-    `make` VARCHAR(191) NOT NULL,
-    `model` VARCHAR(191) NOT NULL,
-    `yearStart` INTEGER NOT NULL,
-    `yearEnd` INTEGER NULL,
-    `transponderType` VARCHAR(191) NOT NULL,
-    `chipType` VARCHAR(191) NOT NULL,
-    `compatibleParts` VARCHAR(191) NOT NULL,
-    `frequency` VARCHAR(191) NULL,
-    `notes` VARCHAR(191) NULL,
-    `dualSystem` BOOLEAN NOT NULL DEFAULT false,
-    `fccId` VARCHAR(191) NULL,
-    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updatedAt` DATETIME(3) NOT NULL,
-
-    INDEX `TransponderKey_make_idx`(`make`),
-    INDEX `TransponderKey_model_idx`(`model`),
-    INDEX `TransponderKey_yearStart_idx`(`yearStart`),
-    INDEX `TransponderKey_transponderType_idx`(`transponderType`),
-    INDEX `TransponderKey_fccId_idx`(`fccId`),
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateTable
-CREATE TABLE `TransponderInventory` (
-    `id` VARCHAR(191) NOT NULL,
-    `transponderKeyId` VARCHAR(191) NOT NULL,
-    `quantity` INTEGER NOT NULL DEFAULT 0,
-    `minimumStock` INTEGER NOT NULL DEFAULT 5,
-    `location` VARCHAR(191) NOT NULL,
-    `supplier` VARCHAR(191) NOT NULL,
-    `lastOrdered` DATETIME(3) NULL,
-    `notes` TEXT NULL,
-    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updatedAt` DATETIME(3) NOT NULL,
-
-    UNIQUE INDEX `TransponderInventory_transponderKeyId_key`(`transponderKeyId`),
-    INDEX `TransponderInventory_transponderKeyId_idx`(`transponderKeyId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -211,31 +134,25 @@ ALTER TABLE `Account` ADD CONSTRAINT `Account_userId_fkey` FOREIGN KEY (`userId`
 ALTER TABLE `Session` ADD CONSTRAINT `Session_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Message` ADD CONSTRAINT `Message_senderId_fkey` FOREIGN KEY (`senderId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE `Message` ADD CONSTRAINT `Message_recipientId_fkey` FOREIGN KEY (`recipientId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Inventory` ADD CONSTRAINT `Inventory_technicianId_fkey` FOREIGN KEY (`technicianId`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `Message` ADD CONSTRAINT `Message_senderId_fkey` FOREIGN KEY (`senderId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Inventory` ADD CONSTRAINT `Inventory_createdBy_fkey` FOREIGN KEY (`createdBy`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Inventory` ADD CONSTRAINT `Inventory_transponderKeyId_fkey` FOREIGN KEY (`transponderKeyId`) REFERENCES `TransponderKey`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `Request` ADD CONSTRAINT `Request_technicianId_fkey` FOREIGN KEY (`technicianId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Inventory` ADD CONSTRAINT `Inventory_technicianId_fkey` FOREIGN KEY (`technicianId`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Request` ADD CONSTRAINT `Request_inventoryId_fkey` FOREIGN KEY (`inventoryId`) REFERENCES `Inventory`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Notification` ADD CONSTRAINT `Notification_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Request` ADD CONSTRAINT `Request_technicianId_fkey` FOREIGN KEY (`technicianId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `TransponderInventory` ADD CONSTRAINT `TransponderInventory_transponderKeyId_fkey` FOREIGN KEY (`transponderKeyId`) REFERENCES `TransponderKey`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Notification` ADD CONSTRAINT `Notification_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Activity` ADD CONSTRAINT `Activity_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

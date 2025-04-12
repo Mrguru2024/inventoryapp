@@ -126,7 +126,7 @@ export default function TransponderSearch() {
   // Use a ref to store the debounced search function
   const debouncedSearchRef = useRef(
     debounce((value: string) => {
-      setSearchTerm(value);
+    setSearchTerm(value);
       if (value.length >= 2) {
         const filtered = transponders.filter((t: TransponderKeyData) => {
           const searchValue = value.toLowerCase();
@@ -263,10 +263,10 @@ export default function TransponderSearch() {
     transpondersData,
     transponders,
     searchTerm,
-    selectedMake,
-    selectedModel,
-    selectedYear,
-    selectedTransponderType,
+      selectedMake,
+      selectedModel,
+      selectedYear,
+      selectedTransponderType,
   ]);
 
   // Memoize available makes from actual transponder data
@@ -545,30 +545,30 @@ export default function TransponderSearch() {
     <div className={styles.filtersGrid}>
       <div className={styles.filterContainer}>
         <label className={styles.filterLabel}>Make</label>
-        <select
+          <select
           value={selectedMake}
-          onChange={handleMakeChange}
+            onChange={handleMakeChange}
           className={styles.filterSelect}
-          aria-label="Select vehicle make"
+            aria-label="Select vehicle make"
           disabled={isLoadingTransponders}
         >
           <option value="">All Makes</option>
           {availableMakes.map((make) => (
             <option key={make} value={make}>
               {make}
-            </option>
-          ))}
-        </select>
-      </div>
+              </option>
+            ))}
+          </select>
+        </div>
 
       <div className={styles.filterContainer}>
         <label className={styles.filterLabel}>Model</label>
-        <select
+          <select
           value={selectedModel}
-          onChange={handleModelChange}
+            onChange={handleModelChange}
           className={styles.filterSelect}
           disabled={!selectedMake || isLoadingTransponders}
-          aria-label="Select vehicle model"
+            aria-label="Select vehicle model"
         >
           <option value="">All Models</option>
           {availableModels.length > 0 ? (
@@ -583,16 +583,16 @@ export default function TransponderSearch() {
             </option>
           )}
         </select>
-      </div>
+        </div>
 
       <div className={styles.filterContainer}>
         <label className={styles.filterLabel}>Year</label>
-        <select
+          <select
           value={selectedYear}
-          onChange={handleYearChange}
+            onChange={handleYearChange}
           className={styles.filterSelect}
           disabled={!selectedMake || !selectedModel || isLoadingTransponders}
-          aria-label="Select vehicle year"
+            aria-label="Select vehicle year"
         >
           <option value="">All Years</option>
           {availableYears.length > 0 ? (
@@ -607,16 +607,16 @@ export default function TransponderSearch() {
             </option>
           )}
         </select>
-      </div>
+        </div>
 
       <div className={styles.filterContainer}>
         <label className={styles.filterLabel}>Transponder Type</label>
-        <select
+          <select
           value={selectedTransponderType}
           onChange={handleTransponderTypeChange}
           className={styles.filterSelect}
           disabled={!selectedMake || !selectedModel || isLoadingTransponders}
-          aria-label="Select transponder type"
+            aria-label="Select transponder type"
         >
           <option value="">All Types</option>
           {availableTypes.length > 0 ? (
@@ -999,8 +999,8 @@ export default function TransponderSearch() {
                       {suggestion.yearStart} - {suggestion.yearEnd || "Present"}{" "}
                       • {suggestion.transponderType}
                     </div>
-                  </div>
-                ))}
+              </div>
+            ))}
               </div>
             )}
           </div>

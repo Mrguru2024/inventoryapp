@@ -84,12 +84,11 @@ export default function LoginPage() {
   const inputClasses = `appearance-none rounded-none relative block w-full px-3 py-2 
     border border-gray-300 dark:border-gray-600 
     placeholder-gray-500 dark:placeholder-gray-400 
-    text-gray-900 dark:text-gray-100 
+    text-gray-900 dark:text-white 
     bg-white dark:bg-gray-800 
     focus:outline-none focus:ring-blue-500 focus:border-blue-500 
     focus:z-10 sm:text-sm transition-colors duration-200
-    [color-scheme:light] dark:[color-scheme:dark]
-    dark:!text-white`;
+    [color-scheme:light] dark:[color-scheme:dark]`;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
@@ -131,7 +130,6 @@ export default function LoginPage() {
                 required
                 className={`${inputClasses} rounded-t-md`}
                 placeholder="Email address"
-                defaultValue="admin@example.com"
               />
             </div>
             <div>
@@ -146,7 +144,6 @@ export default function LoginPage() {
                 required
                 className={`${inputClasses} rounded-b-md`}
                 placeholder="Password"
-                defaultValue="admin123"
               />
             </div>
           </div>

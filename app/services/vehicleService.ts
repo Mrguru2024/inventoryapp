@@ -217,6 +217,27 @@ class VehicleService {
       return false;
     }
   }
+
+  async getModelsForMakeYear(make: string, year: string): Promise<string[]> {
+    try {
+      const response = await axios.get<VehicleApiResponse>(
+        `${this.baseUrl}/GetModelsForMakeYear/make/${encodeURIComponent(
+          make
+        )}/modelyear/${year}?format=json`
+      );
+
+      if (response.status !== 200) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return response.data.Results.map(
+        (model: VehicleModel) => model.Model_Name
+      ).sort((a: string, b: string) => a.localeCompare(b));
+    } catch (error) {
+      console.error("Error fetching models for make and year:", error);
+      throw error;
+    }
+  }
 }
 
 export const vehicleService = new VehicleService();

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { UserRole } from "@/app/lib/auth/types";
 import { hasPermission, isSuperAdmin } from "@/app/lib/auth/permissions";
@@ -57,19 +57,19 @@ const menuItems: MenuItem[] = [
       {
         label: "All Inventory",
         icon: DatabaseIcon,
-        href: "/admin/inventory/all",
+        href: "/admin/inventory",
         color: "text-green-500",
       },
       {
         label: "My Inventory",
         icon: Package,
-        href: "/admin/inventory/my",
+        href: "/admin/inventory?view=my",
         color: "text-green-500",
       },
       {
         label: "Pending Approval",
         icon: Clock,
-        href: "/admin/inventory/pending",
+        href: "/admin/inventory?view=pending",
         color: "text-yellow-500",
         adminOnly: true,
       },
@@ -132,6 +132,7 @@ const menuItems: MenuItem[] = [
 
 export default function SideMenu() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
 
   // Get user role from session
@@ -149,6 +150,18 @@ export default function SideMenu() {
       return true;
     });
   }, [session?.user, status, userRole]);
+
+  const isActive = (href: string) => {
+    const [basePath, query] = href.split("?");
+    const currentView = searchParams.get("view");
+
+    if (query) {
+      const expectedView = query.split("=")[1];
+      return pathname === basePath && currentView === expectedView;
+    }
+
+    return pathname === basePath && !currentView;
+  };
 
   if (status === "loading") {
     return (
@@ -170,7 +183,7 @@ export default function SideMenu() {
             href={item.href}
             className={cn(
               "flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors duration-150",
-              pathname === item.href
+              isActive(item.href)
                 ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
                 : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
             )}
@@ -178,7 +191,7 @@ export default function SideMenu() {
             <item.icon className={cn("mr-3 h-5 w-5", item.color)} />
             {item.label}
           </Link>
-          {item.subItems && pathname.startsWith(item.href) && (
+          {item.subItems && pathname.startsWith(item.href.split("?")[0]) && (
             <div className="ml-4 mt-1 space-y-1">
               {item.subItems
                 .filter(
@@ -191,7 +204,7 @@ export default function SideMenu() {
                     href={subItem.href}
                     className={cn(
                       "flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors duration-150",
-                      pathname === subItem.href
+                      isActive(subItem.href)
                         ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
                         : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                     )}

@@ -1,131 +1,181 @@
 "use client";
 
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
-import { Key } from 'lucide-react';
-import { Package } from 'lucide-react';
-import { Wrench as Tool } from 'lucide-react';
-import AddItemModal from '@/app/components/AddItemModal';
-import VehicleApiTest from '@/app/components/VehicleApiTest';
+import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { redirect } from "next/navigation";
+import {
+  Package,
+  ShoppingCart,
+  User,
+  MapPin,
+  Search,
+  BookOpen,
+  MessageSquare,
+  DollarSign,
+  Wrench,
+} from "lucide-react";
+import Link from "next/link";
 
 export default function TechnicianDashboard() {
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const { data: session, status } = useSession();
+  const [activeTab, setActiveTab] = useState("inventory");
 
-  // Example inventory stats - replace with actual data from your backend
-  const stats = {
-    totalKeys: 150,
-    availableKeys: 130,
-    totalTools: 200,
-    availableTools: 180,
-    recentTransactions: 25
-  };
+  if (status === "unauthenticated") {
+    redirect("/auth/signin");
+  }
+
+  if (status === "loading") {
+    return <div>Loading...</div>;
+  }
+
+  const features = [
+    {
+      id: "inventory",
+      title: "Personal Inventory",
+      icon: Package,
+      description: "Manage your personal inventory with auto-calculated values",
+      href: "/technician/inventory",
+    },
+    {
+      id: "shop",
+      title: "Inventory Purchase",
+      icon: ShoppingCart,
+      description: "Browse and purchase items from our catalog",
+      href: "/technician/shop",
+    },
+    {
+      id: "profile",
+      title: "Profile Management",
+      icon: User,
+      description: "Update your personal information and preferences",
+      href: "/technician/profile",
+    },
+    {
+      id: "jobs",
+      title: "Job Opportunities",
+      icon: MapPin,
+      description: "Find and accept jobs in your area",
+      href: "/technician/jobs",
+    },
+    {
+      id: "search",
+      title: "Transponder Database",
+      icon: Search,
+      description: "Search key data, FCC IDs, and compatibilities",
+      href: "/technician/search",
+    },
+    {
+      id: "guides",
+      title: "Programming Guides",
+      icon: BookOpen,
+      description: "Access detailed programming instructions",
+      href: "/technician/guides",
+    },
+    {
+      id: "support",
+      title: "Support Chat",
+      icon: MessageSquare,
+      description: "Get help from our support team",
+      href: "/technician/support",
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Add New Item
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Keys Stats */}
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-          <div className="flex items-center gap-3">
-            <Key className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Keys</h3>
-              <div className="mt-2 grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Total</p>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.totalKeys}</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+              Welcome, {session?.user?.name}
+            </h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Technician Dashboard
+            </p>
+          </div>
+        </div>
+
+        {/* Features Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {features.map((feature) => {
+            const IconComponent = feature.icon;
+            return (
+              <Link
+                key={feature.id}
+                href={feature.href}
+                className="group block p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 dark:border-gray-700 h-full min-h-[180px]"
+              >
+                <div className="flex flex-col h-full">
+                  <div className="flex items-start space-x-4 mb-4">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors duration-200 flex-shrink-0">
+                      <IconComponent className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                        {feature.title}
+                      </h3>
+                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                        {feature.description}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Available</p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.availableKeys}</p>
-                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Quick Stats Section */}
+        <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-start space-x-4">
+              <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-lg flex-shrink-0">
+                <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Total Inventory Value
+                </h3>
+                <p className="mt-2 text-2xl font-bold text-green-600 dark:text-green-400">
+                  $0.00
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-start space-x-4">
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex-shrink-0">
+                <Package className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Items in Stock
+                </h3>
+                <p className="mt-2 text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  0
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-start space-x-4">
+              <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-lg flex-shrink-0">
+                <Wrench className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Active Jobs
+                </h3>
+                <p className="mt-2 text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  0
+                </p>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Tools Stats */}
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-          <div className="flex items-center gap-3">
-            <Tool className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Tools</h3>
-              <div className="mt-2 grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Total</p>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.totalTools}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Available</p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.availableTools}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-          <div className="flex items-center gap-3">
-            <Package className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Recent Activity</h3>
-              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-2">
-                {stats.recentTransactions} transactions
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
-
-      {/* Recent Transactions Table */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Recent Transactions</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead>
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Item</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {/* Add your transaction rows here */}
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-300">Example Item</td>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">Key</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                    Checked In
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">2024-03-21</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Add Item Modal */}
-      <AddItemModal 
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-      />
-
-      {/* Add this temporarily for testing */}
-      <VehicleApiTest />
     </div>
   );
-} 
+}

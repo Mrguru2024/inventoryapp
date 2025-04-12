@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const stockItemSchema = z.object({
   sku: z.string().min(1, "SKU is required"),
@@ -22,114 +27,168 @@ const stockItemSchema = z.object({
 
 type StockItemFormData = z.infer<typeof stockItemSchema>;
 
-interface StockFormProps {
-  onSubmit: (data: StockItemFormData) => void;
-  initialData?: StockItemFormData;
-}
-
-export function StockForm({ onSubmit, initialData }: StockFormProps) {
+export function StockForm() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
     watch,
+    reset,
   } = useForm<StockItemFormData>({
     resolver: zodResolver(stockItemSchema),
-    defaultValues: initialData,
   });
 
+  const { data: session } = useSession();
+  const router = useRouter();
   const isDualSystem = watch("isDualSystem");
+
+  const onSubmit = async (data: StockItemFormData) => {
+    try {
+      const response = await fetch("/api/inventory", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...data,
+          technicianId: session?.user?.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create inventory item");
+      }
+
+      toast.success("Inventory item created successfully");
+      reset();
+      router.refresh();
+    } catch (error) {
+      console.error("Error creating inventory item:", error);
+      toast.error("Failed to create inventory item");
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="sku">SKU</Label>
-          <Input id="sku" {...register("sku")} />
+          <Label htmlFor="sku" className="text-foreground">
+            SKU
+          </Label>
+          <Input id="sku" {...register("sku")} className="text-foreground" />
           {errors.sku && (
-            <p className="text-red-500 text-sm">{errors.sku.message}</p>
+            <p className="text-destructive text-sm">{errors.sku.message}</p>
           )}
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="brand">Brand</Label>
-          <Input id="brand" {...register("brand")} />
+          <Label htmlFor="brand" className="text-foreground">
+            Brand
+          </Label>
+          <Input
+            id="brand"
+            {...register("brand")}
+            className="text-foreground"
+          />
           {errors.brand && (
-            <p className="text-red-500 text-sm">{errors.brand.message}</p>
+            <p className="text-destructive text-sm">{errors.brand.message}</p>
           )}
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="model">Model</Label>
-          <Input id="model" {...register("model")} />
+          <Label htmlFor="model" className="text-foreground">
+            Model
+          </Label>
+          <Input
+            id="model"
+            {...register("model")}
+            className="text-foreground"
+          />
           {errors.model && (
-            <p className="text-red-500 text-sm">{errors.model.message}</p>
+            <p className="text-destructive text-sm">{errors.model.message}</p>
           )}
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="quantity">Quantity</Label>
+          <Label htmlFor="quantity" className="text-foreground">
+            Quantity
+          </Label>
           <Input
             id="quantity"
             type="number"
             {...register("quantity", { valueAsNumber: true })}
+            className="text-foreground"
           />
           {errors.quantity && (
-            <p className="text-red-500 text-sm">{errors.quantity.message}</p>
+            <p className="text-destructive text-sm">
+              {errors.quantity.message}
+            </p>
           )}
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="lowStockThreshold">Low Stock Threshold</Label>
+          <Label htmlFor="lowStockThreshold" className="text-foreground">
+            Low Stock Threshold
+          </Label>
           <Input
             id="lowStockThreshold"
             type="number"
             {...register("lowStockThreshold", { valueAsNumber: true })}
+            className="text-foreground"
           />
           {errors.lowStockThreshold && (
-            <p className="text-red-500 text-sm">
+            <p className="text-destructive text-sm">
               {errors.lowStockThreshold.message}
             </p>
           )}
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="price">Price</Label>
+          <Label htmlFor="price" className="text-foreground">
+            Price
+          </Label>
           <Input
             id="price"
             type="number"
             step="0.01"
             {...register("price", { valueAsNumber: true })}
+            className="text-foreground"
           />
           {errors.price && (
-            <p className="text-red-500 text-sm">{errors.price.message}</p>
+            <p className="text-destructive text-sm">{errors.price.message}</p>
           )}
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="purchaseSource">Purchase Source</Label>
-          <Input id="purchaseSource" {...register("purchaseSource")} />
+          <Label htmlFor="purchaseSource" className="text-foreground">
+            Purchase Source
+          </Label>
+          <Input
+            id="purchaseSource"
+            {...register("purchaseSource")}
+            className="text-foreground"
+          />
           {errors.purchaseSource && (
-            <p className="text-red-500 text-sm">
+            <p className="text-destructive text-sm">
               {errors.purchaseSource.message}
             </p>
           )}
         </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="isDualSystem">Dual System</Label>
-          <Switch
-            id="isDualSystem"
-            checked={isDualSystem}
-            onCheckedChange={(checked) => {
-              register("isDualSystem").onChange({ target: { value: checked } });
-            }}
-          />
-        </div>
       </div>
 
-      <Button type="submit" className="w-full">
-        {initialData ? "Update Item" : "Add Item"}
+      {/* Dual System Toggle */}
+      <div className="flex items-center space-x-2 pt-2">
+        <Switch
+          id="isDualSystem"
+          checked={isDualSystem}
+          onCheckedChange={(checked) =>
+            register("isDualSystem").onChange({ target: { value: checked } })
+          }
+        />
+        <Label
+          htmlFor="isDualSystem"
+          className="text-foreground cursor-pointer"
+        >
+          Dual System (Chip + Remote)
+        </Label>
+      </div>
+
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Creating..." : "Create Inventory Item"}
       </Button>
     </form>
   );

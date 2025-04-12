@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/app/lib/auth/types";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -12,9 +12,13 @@ export async function GET() {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+
     const items = await prisma.inventory.findMany({
       where: {
         status: "ACTIVE",
+        ...(userId && { createdById: userId }),
       },
       orderBy: {
         updatedAt: "desc",

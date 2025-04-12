@@ -358,7 +358,7 @@ export default function TransponderManagement() {
 
           const data = await response.json();
           return data as TransponderKeyData[];
-        } catch (error) {
+    } catch (error) {
           console.error("Error fetching transponders:", error);
           return [] as TransponderKeyData[];
         }
@@ -524,32 +524,32 @@ export default function TransponderManagement() {
     async (id: string, quantity: number) => {
       if (!session?.user) return;
 
-      try {
-        const response = await fetch(`/api/inventory/${id}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ quantity }),
-        });
+    try {
+      const response = await fetch(`/api/inventory/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ quantity }),
+      });
 
-        if (!response.ok) {
-          throw new Error("Failed to update stock");
-        }
+      if (!response.ok) {
+        throw new Error("Failed to update stock");
+      }
 
         await loadData();
-        toast({
-          title: "Success",
-          description: "Stock updated successfully",
-        });
-      } catch (error) {
-        console.error("Error updating stock:", error);
-        toast({
-          title: "Error",
-          description: "Failed to update stock",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Success",
+        description: "Stock updated successfully",
+      });
+    } catch (error) {
+      console.error("Error updating stock:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update stock",
+        variant: "destructive",
+      });
+    }
     },
     [session?.user, loadData, toast]
   );
@@ -558,32 +558,32 @@ export default function TransponderManagement() {
     async (item: TransponderInventoryItem) => {
       if (!session?.user) return;
 
-      try {
-        const response = await fetch(`/api/inventory/${item.id}/order`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(item),
-        });
+    try {
+      const response = await fetch(`/api/inventory/${item.id}/order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(item),
+      });
 
-        if (!response.ok) {
-          throw new Error("Failed to place order");
-        }
+      if (!response.ok) {
+        throw new Error("Failed to place order");
+      }
 
         await loadData();
-        toast({
-          title: "Success",
-          description: "Stock order placed successfully",
-        });
-      } catch (error) {
-        console.error("Error ordering stock:", error);
-        toast({
-          title: "Error",
-          description: "Failed to place stock order",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Success",
+        description: "Stock order placed successfully",
+      });
+    } catch (error) {
+      console.error("Error ordering stock:", error);
+      toast({
+        title: "Error",
+        description: "Failed to place stock order",
+        variant: "destructive",
+      });
+    }
     },
     [session?.user, loadData, toast]
   );
@@ -725,49 +725,49 @@ export default function TransponderManagement() {
       <h1 className={styles.header}>Transponder Management</h1>
 
       <div className={styles.filtersContainer}>
-        <select
+              <select
           value={selectedMake}
           onChange={handleMakeChange}
           className={styles.select}
-          aria-label="Select vehicle make"
-        >
+                aria-label="Select vehicle make"
+              >
           <option value="">Select Make</option>
-          {getUniqueMakes.map((make) => (
-            <option key={make} value={make}>
-              {make}
-            </option>
-          ))}
-        </select>
+                {getUniqueMakes.map((make) => (
+                  <option key={make} value={make}>
+                    {make}
+                  </option>
+                ))}
+              </select>
 
-        <select
+              <select
           value={selectedModel}
           onChange={handleModelChange}
           className={styles.select}
           disabled={!selectedMake}
-          aria-label="Select vehicle model"
-        >
+                aria-label="Select vehicle model"
+              >
           <option value="">Select Model</option>
           {availableModels.map((model) => (
-            <option key={model} value={model}>
-              {model}
-            </option>
-          ))}
-        </select>
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+              </select>
 
-        <select
+              <select
           value={selectedYear}
           onChange={handleYearChange}
           className={styles.select}
           disabled={!selectedModel}
-          aria-label="Select vehicle year"
-        >
+                aria-label="Select vehicle year"
+              >
           <option value="">Select Year</option>
           {availableYears.map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+              </select>
 
         <select
           value={selectedTransponderType}
@@ -787,7 +787,7 @@ export default function TransponderManagement() {
           <option value="TRANSPONDER">Transponder Key</option>
           <option value="REMOTE">Remote Key</option>
         </select>
-      </div>
+          </div>
 
       {isTranspondersLoading ? (
         <div className={styles.loadingContainer}>
@@ -795,15 +795,15 @@ export default function TransponderManagement() {
         </div>
       ) : filteredTransponderData.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTransponderData.map((transponder) => (
-            <div
-              key={transponder.id}
+                {filteredTransponderData.map((transponder) => (
+                  <div
+                    key={transponder.id}
               className={`${styles.detailsContainer} ${styles.cardHover}`}
               onClick={() => handleTransponderSelect(transponder)}
             >
               <h3 className={styles.detailsTitle}>
-                {transponder.make} {transponder.model}
-              </h3>
+                      {transponder.make} {transponder.model}
+                    </h3>
               <div className={styles.detailsGrid}>
                 <div className={styles.detailsSection}>
                   <div>
@@ -852,7 +852,7 @@ export default function TransponderManagement() {
                   <p className="text-gray-100">
                     {selectedTransponderDetails.model}
                   </p>
-                </div>
+                    </div>
                 <div>
                   <h4 className="text-sm font-semibold text-gray-300">
                     Year Range
@@ -861,7 +861,7 @@ export default function TransponderManagement() {
                     {selectedTransponderDetails.yearStart} -{" "}
                     {selectedTransponderDetails.yearEnd || "Present"}
                   </p>
-                </div>
+                  </div>
                 <div>
                   <h4 className="text-sm font-semibold text-gray-300">
                     Transponder Type
@@ -875,7 +875,7 @@ export default function TransponderManagement() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+          </div>
   );
 }
 

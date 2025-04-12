@@ -10,11 +10,16 @@ export default async function AdminLayout({
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect("/");
+    redirect("/auth/signin");
   }
 
-  // Verify correct role
-  if ((session.user as any).role !== "ADMIN") {
+  // Allow access to inventory for all authenticated users
+  if (session.user.role === "TECHNICIAN" || session.user.role === "MANAGER") {
+    return <div className="h-full">{children}</div>;
+  }
+
+  // For other admin routes, verify admin role
+  if (session.user.role !== "ADMIN") {
     redirect("/");
   }
 

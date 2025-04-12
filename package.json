@@ -13,7 +13,8 @@
     "scrape:transpondery": "node scripts/scrapers/scrapeTranspondery.js",
     "scrape:uhs": "node scripts/scrapers/scrapeUHS.js",
     "scrape:all": "npm run scrape:transpondery && npm run scrape:uhs",
-    "update:fccids": "node scripts/updateFccIds.js"
+    "update:fccids": "node scripts/updateFccIds.js",
+    "create:test-users": "ts-node scripts/create-test-users.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -31,11 +32,13 @@
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-checkbox": "^1.1.4",
     "@radix-ui/react-dialog": "^1.1.7",
+    "@radix-ui/react-dropdown-menu": "^2.1.7",
     "@radix-ui/react-label": "^2.1.2",
     "@radix-ui/react-scroll-area": "^1.2.3",
     "@radix-ui/react-select": "^2.1.6",
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-switch": "^1.1.4",
+    "@radix-ui/react-tabs": "^1.1.4",
     "@radix-ui/react-toast": "^1.2.6",
     "@tanstack/react-query": "^5.71.0",
     "@types/bcryptjs": "^3.0.0",
@@ -66,7 +69,7 @@
     "react-hot-toast": "^2.5.2",
     "react-zxing": "^2.1.0",
     "sonner": "^2.0.2",
-    "tailwind-merge": "^3.0.2",
+    "tailwind-merge": "^3.2.0",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.24.2",
     "zustand": "^5.0.3"

@@ -1,59 +1,23 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { Suspense } from "react";
-import dynamic from "next/dynamic";
-import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
-// Dynamically import components with loading fallback
-const TransponderManagement = dynamic(
-  () => import("@/app/components/TransponderManagement"),
-  {
-    loading: () => <LoadingSpinner />,
-  }
-);
-
-const QueryClientWrapper = dynamic(
-  () =>
-    import("@/app/components/QueryClientWrapper").then(
-      (mod) => mod.QueryClientWrapper
-    ),
-  {
-    loading: () => <LoadingSpinner />,
-  }
-);
-
-export default async function TranspondersPage() {
+export default async function AdminTranspondersPage() {
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    return null;
+    redirect("/auth/signin");
   }
 
-  // Verify correct role
-  if ((session.user as any).role !== "ADMIN") {
-    redirect("/");
+  if (session.user.role !== "admin") {
+    redirect("/dashboard");
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Transponder Management
-          </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Manage transponder inventory and programming guides
-          </p>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-          <Suspense fallback={<LoadingSpinner />}>
-            <QueryClientWrapper>
-              <TransponderManagement />
-            </QueryClientWrapper>
-          </Suspense>
-        </div>
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold mb-6">Transponder Management</h1>
+      <div className="grid gap-6">
+        {/* Transponder management content will go here */}
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import LoadingSpinner from "@/app/components/LoadingSpinner";
 import QuickStats from "@/app/components/dashboard/QuickStats";
 import RecentActivity from "@/app/components/dashboard/RecentActivity";
 import Notifications from "@/app/components/dashboard/Notifications";
+import Link from "next/link";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -54,14 +55,14 @@ export default function DashboardPage() {
           <div className="mt-8">
             <h2 className="text-2xl font-bold mb-4">Admin Tools</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <a
+              <Link
                 href="/admin/users"
                 className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow"
               >
                 <h3 className="text-lg font-semibold mb-2">User Management</h3>
                 <p className="text-gray-500">Manage users and permissions</p>
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/admin/inventory"
                 className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow"
               >
@@ -69,14 +70,14 @@ export default function DashboardPage() {
                   Inventory Management
                 </h3>
                 <p className="text-gray-500">View and manage inventory</p>
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/admin/settings"
                 className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow"
               >
                 <h3 className="text-lg font-semibold mb-2">System Settings</h3>
                 <p className="text-gray-500">Configure system settings</p>
-              </a>
+              </Link>
             </div>
           </div>
         )}
@@ -85,20 +86,20 @@ export default function DashboardPage() {
           <div className="mt-8">
             <h2 className="text-2xl font-bold mb-4">Technician Tools</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <a
-                href="/technician/inventory"
+              <Link
+                href="/admin/inventory?view=my"
                 className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow"
               >
                 <h3 className="text-lg font-semibold mb-2">My Inventory</h3>
                 <p className="text-gray-500">View and manage your inventory</p>
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/technician/orders"
                 className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow"
               >
                 <h3 className="text-lg font-semibold mb-2">Orders</h3>
                 <p className="text-gray-500">View and manage orders</p>
-              </a>
+              </Link>
             </div>
           </div>
         )}

@@ -43,7 +43,7 @@ export default function InventoryList() {
     <div className="mt-8">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Inventory Items</h2>
-        <Link href="/admin/inventory/new">
+        <Link href="/admin/inventory">
           <Button>Add New Item</Button>
         </Link>
       </div>
@@ -68,7 +68,7 @@ export default function InventoryList() {
                 <TableCell>{item.stockCount}</TableCell>
                 <TableCell>{item.lowStockThreshold}</TableCell>
                 <TableCell className="space-x-2">
-                  <Link href={`/admin/inventory/${item.id}/edit`}>
+                  <Link href={`/admin/inventory?edit=${item.id}`}>
                     <Button className="h-9 px-3 hover:bg-gray-100">
                       <EditIcon className="h-4 w-4" />
                     </Button>
